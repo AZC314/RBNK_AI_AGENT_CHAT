@@ -1,0 +1,15 @@
+{
+	
+	"light":{
+		"navigationBarBackgroudColor": "#FFF",
+		"navigationBarTextStyle":"white",
+		"BarBackgroudColor":"#ffffff",
+		"BarBackgroudTextStyle":"ligth"
+	},
+	"color":{
+		"themeBlue" : "#1890ff",
+		"themeGray" : "#8f8f94"
+	}
+	
+	
+}

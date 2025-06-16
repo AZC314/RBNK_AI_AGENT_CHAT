@@ -1,0 +1,41 @@
+{
+	"vueVersion": "3",
+	"pages": [
+		{
+			"path": "pages/message/message"
+		},
+		{
+			"path": "pages/address/address"
+		},
+		{
+			"path": "pages/chat/chat"
+		},
+		{
+			"path": "pages/index/index"
+		}
+	],
+	"globalStyle": {
+		"navigationStyle": "custom"
+	},
+	"uniIdRouter": {},
+	"tabBar": {
+		"color": "#8f8f94",
+		"selectedColor": "#0b8aff",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/message/message",
+				"iconPath": "/static/tabbar/message.png",
+				"selectedIconPath": "/static/tabbar/message_clinck.png",
+				"text": "消息"
+			},
+			{
+				"pagePath": "pages/address/address",
+				"iconPath": "/static/tabbar/linkMan.png",
+				"selectedIconPath": "/static/tabbar/linkMan_clinck.png",
+				"text": "通讯录"
+			}
+		]
+	}
+}
