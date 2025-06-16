@@ -63,7 +63,7 @@
 		hamdleMeInfo()
 		// 初始化store并检查是否需要更新
 		const needUpdate = await sessionStore.initStore()
-		
+
 		if (needUpdate) {
 			handSessionList(new Object({ page_size: 40, sort_by: '-updated_at' }))
 		}

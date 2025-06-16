@@ -80,19 +80,43 @@
 		uni.navigateBack()
 	}
 
-	function init() {
-		GET_MESSAGE(new Object({
-			conversation_id: conversationId,
-			limit: 10
-		})).then((res) => {
+	async function init() {
+		try {
+			// 先加载本地数据
+			await messageStore.loadMessages(chatId);
+			
+			// 获取本地消息列表
+			const localMessages = messageStore.getMessages(chatId);
+			
+			// 检查是否有本地数据
+			if (localMessages.length > 0) {
+				// 获取最后一条消息的时间
+				const lastMessage = localMessages[localMessages.length - 1];
+				const lastUpdateTime = new Date(lastMessage.created_at).getTime();
+				const currentTime = Date.now();
+				
+				// 如果最后更新时间在1分钟内，直接使用本地数据
+				if (currentTime - lastUpdateTime <= 60 * 1000) {
+					handleMsgList(localMessages);
+					return;
+				}
+			}
+			
+			// 如果没有本地数据或数据超过1分钟，从服务器加载新数据
+			const res = await GET_MESSAGE({
+				conversation_id: conversationId,
+				limit: 10
+			});
+			
 			console.log('GET_MESSAGE success ' + JSON.stringify(res));
 			const data = res as Info.message[];
-			data.map(elem => messageStore.addMessage(chatId, elem))
+			// 删除旧数据并添加新数据
+			await messageStore.deleteMessages(chatId);
+			data.map(elem => messageStore.addMessage(chatId, elem));
 			handleMsgList(data);
-		})
-			.catch((err) => {
-				console.log('GET_MESSAGE fail ' + JSON.stringify(err));
-			})
+		} catch (err) {
+			console.log('GET_MESSAGE fail ' + JSON.stringify(err));
+		}
 	}
 
 	// H5 页面初始化（通过 getCurrentPages 获取传参）

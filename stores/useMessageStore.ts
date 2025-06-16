@@ -8,7 +8,11 @@ export const useMessageStore = defineStore('message', {
     state: () => ({
         messagesMap: {} as Record<string, Info.message[]> // 每个会话的消息队列
     }),
-    getters: {},
+    getters: {
+        getMessages: (state) => (key: string): Info.message[] => {
+            return state.messagesMap[key] || []
+        }
+    },
 
     actions: {
         async loadMessages(key: string) {
@@ -21,7 +25,6 @@ export const useMessageStore = defineStore('message', {
             if (!this.messagesMap[key]) {
                 this.messagesMap[key] = []
             }
-			console.dir(message);
             this.messagesMap[key].push(message as Info.message)
             await addMessageToDB(message)
         },

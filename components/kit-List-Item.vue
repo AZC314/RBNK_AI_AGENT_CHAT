@@ -93,11 +93,8 @@
 	}
 
 	onMounted(async () => {
-		console.log('开始获取部门')
 		const dept = await getDepartment()
-		console.log('获取到的部门:', dept)
 		department.value = dept
-		console.log('当前department值:', department.value)
 	})
 </script>
 
