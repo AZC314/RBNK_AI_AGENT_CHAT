@@ -13,6 +13,7 @@
 		onMounted,
 		computed
 	} from 'vue'
+	import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 	import SearchBox from '@/components/searchBox.vue'
 	import LinkManListView from '@/components/linkManListView.vue'
 	import PinyinMatch from 'pinyin-match'
@@ -23,25 +24,51 @@
 
 	// 搜索框内容
 	const searchText = ref('')
-
-
 	// 通讯录数据
-	const contacts = ref<LinkManModel[]>([])
+	const contacts = computed({
+		get: () => AppStorage.get('contacts') as LinkManModel[],
+		set: (value) => {
+			AppStorage.set('contacts', value)
+		}
+	})
 
-	/* const groupedContacts = computed(() => {
-		const groups : Record<string, LinkManModel[]> = {}
+	// 页面加载时
+	onLoad(() => {
+		loadContacts()
+	})
 
-		contacts.value.forEach(contact => {
-			const dept = contact.department?.trim() || '未分组'
-			if (!groups[dept]) {
-				groups[dept] = []
+	// 组件挂载时
+	onMounted(() => {
+		const data = AppStorage.get('contacts') as []
+		if (data.length === 0) {
+			loadContacts()
+		}
+	})
+
+	// 下拉刷新时
+	onPullDownRefresh(async () => {
+		await loadContacts(true)
+	})
+
+	// 统一的数据加载函数
+	const loadContacts = async (isRefresh = false) => {
+		try {
+			if (isRefresh) {
+				AppStorage.set('contacts', [])
 			}
-			groups[dept].push(contact)
-		})
-
-		return groups
-	}) */
-
+			handleLinkManList({ page_size: 100, page: 1, is_digital_human: true })
+		} catch (error) {
+			console.error('加载联系人失败:', error)
+			if (isRefresh) {
+				uni.showToast({
+					title: '刷新失败',
+					icon: 'error',
+					duration: 2000
+				})
+				uni.stopPullDownRefresh()
+			}
+		}
+	}
 
 	function handleLinkManList(pararms : object) {
 		GET_AVAILABLE(pararms).then((res) => {
@@ -51,8 +78,8 @@
 			}
 		})
 	}
-	function HandledigitalHumans(orginalContext : Info.digitalHumansContext) {
 
+	function HandledigitalHumans(orginalContext : Info.digitalHumansContext) {
 		//总页数
 		let total_pages = orginalContext.total_pages;
 		//当前页数
@@ -61,34 +88,29 @@
 		let newList = orginalContext.data.map((value : Info.digitalHumans) => {
 			return LinkManModel.digitalHumans2LinkManModel(value)
 		})
-		AppStorage.set('contacts', [...orginalList, ...newList])
+
+		// 如果是第一页，直接替换数据
+		if (page === 1) {
+			AppStorage.set('contacts', newList)
+		} else {
+			// 如果不是第一页，追加数据
+			AppStorage.set('contacts', [...orginalList, ...newList])
+		}
 
 		console.log('linkManLIst ' + orginalList.length + newList.length + 'total_pages' + total_pages + "page" + page);
 		if (page >= total_pages) {
 			console.log('最终的contacts(LinkManList)' + JSON.stringify(AppStorage.get('contacts')));
-			contacts.value = AppStorage.get('contacts')
+			uni.stopPullDownRefresh()
 		} else {
-			handleLinkManList(new Object({ page_size: orginalContext.page_size, page: page + 1, sort_by: '-updated_at' ,is_digital_human:true}))
+			handleLinkManList(new Object({
+				page_size: orginalContext.page_size,
+				page: page + 1,
+				sort_by: '-updated_at',
+				is_digital_human: true
+			}))
 		}
 	}
-	onMounted(() => {
-		const data = AppStorage.get('contacts') as []
-		if(data.length > 0){
-			contacts.value = AppStorage.get('contacts')
-		}else{
-			handleLinkManList(new Object({ page_size: 100 ,is_digital_human:true}))
-		}
-		
 
-
-		// // 按部门和姓名排序
-		// contacts.value = contactList.sort((a, b) => {
-		// 	if (a.department !== b.department) {
-		// 		return a.department.localeCompare(b.department)
-		// 	}
-		// 	return a.name.localeCompare(b.name)
-		// })
-	})
 
 	//过滤联系人列表
 	// 安全的匹配函数，避免 null/undefined 报错

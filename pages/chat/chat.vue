@@ -84,36 +84,38 @@
 		try {
 			// 先加载本地数据
 			await messageStore.loadMessages(chatId);
-			
+
 			// 获取本地消息列表
 			const localMessages = messageStore.getMessages(chatId);
-			
+
 			// 检查是否有本地数据
 			if (localMessages.length > 0) {
 				// 获取最后一条消息的时间
 				const lastMessage = localMessages[localMessages.length - 1];
 				const lastUpdateTime = new Date(lastMessage.created_at).getTime();
 				const currentTime = Date.now();
-				
+
 				// 如果最后更新时间在1分钟内，直接使用本地数据
 				if (currentTime - lastUpdateTime <= 60 * 1000) {
 					handleMsgList(localMessages);
 					return;
 				}
 			}
-			
-			// 如果没有本地数据或数据超过1分钟，从服务器加载新数据
-			const res = await GET_MESSAGE({
-				conversation_id: conversationId,
-				limit: 10
-			});
-			
-			console.log('GET_MESSAGE success ' + JSON.stringify(res));
-			const data = res as Info.message[];
-			// 删除旧数据并添加新数据
-			await messageStore.deleteMessages(chatId);
-			data.map(elem => messageStore.addMessage(chatId, elem));
-			handleMsgList(data);
+
+			if(conversationId !== ''){
+				// 如果没有本地数据或数据超过1分钟，从服务器加载新数据
+				const res = await GET_MESSAGE({
+					conversation_id: conversationId,
+					limit: 10
+				});
+				
+				console.log('GET_MESSAGE success ' + JSON.stringify(res));
+				const data = res as Info.message[];
+				// 删除旧数据并添加新数据
+				await messageStore.deleteMessages(chatId);
+				data.map(elem => messageStore.addMessage(chatId, elem));
+				handleMsgList(data);
+			}
 		} catch (err) {
 			console.log('GET_MESSAGE fail ' + JSON.stringify(err));
 		}
@@ -135,6 +137,7 @@
 		if (options.conversationId) {
 			conversationId = decodeURIComponent(options.conversationId)
 		}
+		AppStorage.set('textIDList', '')
 		init();
 
 
@@ -259,6 +262,7 @@
 	})
 	onBeforeUnmount(() => {
 		AppStorage.delete(CONVERSATIONID)
+		AppStorage.delete('textIDList')
 	})
 
 	function handleMsgList(pramas : Info.message[]) {
@@ -311,6 +315,8 @@
 				console.log('POST_CHAT_COMPLETIONS taskId', id);
 				taskId = id;
 			};
+
+			const setConversationId = (key : string) => { conversationId = key }
 
 			const onChar = (char : string) => {
 				console.log('Received char:', char);
@@ -371,7 +377,7 @@
 				}
 			};
 
-			await POST_CHAT_COMPLETIONS(params, undefined, setTaskId, onChar, onDone);
+			await POST_CHAT_COMPLETIONS(params, undefined, setTaskId, onChar, onDone, setConversationId);
 		} catch (error) {
 			console.error('Error in handleSend:', error);
 			uni.showToast({
@@ -621,7 +627,7 @@
 	// 处理清空输入
 	const handleClear = () => {
 		try {
-			if(msgList.value.length < 1){
+			if (msgList.value.length < 1) {
 				return
 			}
 			uni.showModal({
@@ -636,7 +642,7 @@
 						msgList.value = []
 						DELETE_CONVERSATIONS(conversationId).then(res => {
 							console.log('清除成功');
-						}).catch(err=>{
+						}).catch(err => {
 							console.log('清除失败' + JSON.stringify(err));
 						})
 					}

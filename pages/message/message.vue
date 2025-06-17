@@ -31,6 +31,7 @@
 		onMounted,
 		computed
 	} from 'vue'
+	import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 	import PinyinMatch from 'pinyin-match'
 	import { SessionModel } from '@/models/sessionModel'
 	import EmptyState from '@/components/EmptyState.vue'
@@ -72,7 +73,7 @@
 	function hamdleMeInfo() {
 		GET_ME_INFO().then((res) => {
 			console.log('GET_ME_INFO 成功：', JSON.stringify(res));
-			if (res?.data) {
+			if (res.data) {
 				AppStorage.set(USER_INFO, res.data as Info.User);
 			} else {
 				console.warn('GET_ME_INFO 返回数据为空');
@@ -113,6 +114,8 @@
 		if (usefulItem >= 10 || page >= total_pages) {
 			AppStorage.set('sessionList', sessionStore.getSessions)
 			console.log('最终的sessionList' + JSON.stringify(AppStorage.get('sessionList')));
+			// 停止下拉刷新动画
+			uni.stopPullDownRefresh()
 		} else {
 			handSessionList(new Object({ page_size: orginalContext.page_size, page: orginalContext.page + 1, sort_by: '-updated_at' }))
 		}
@@ -173,12 +176,11 @@
 			let conversationList = [];
 			/* todo 通过agentId删除所有和这个ai数字人相关的chat */
 			sessionStore.removeSession(session.userId)
-			sessionList.value = sessionStore.getSessions
+			// sessionList.value = sessionStore.getSessions
 
 
 			DELETE_CONVERSATIONS(session.conversation_id).then((res) => {
 				console.log('DELETE_CONVERSATIONS success' + JSON.stringify(res));
-
 			})
 				.catch((err) => {
 					console.log('DELETE_CONVERSATIONS fail' + err.data.detail);
@@ -225,17 +227,36 @@
 	}
 
 	onMounted(() => {
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		const options = currentPage.$page.options
+		init()
+	})
+
+	// 接收页面参数
+	onLoad((options) => {
+		uni.startPullDownRefresh();
 		/* todo 接收企微的数据  */
-		if (options.id) {
+		if (options?.id) {
 
 		}
 
-		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAxMjExNzUsInN1YiI6IjEifQ.z4hkZfq83-UfhAhzWllhVQltY2BsJQM2jVAN5kbonsY';
+		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAxNDk0MzEsInN1YiI6IjEifQ.HHxnaPx7m6e5hvVeZHaUFSbMOxGAYyiG7Wu6f9ZFD-4';
 		AppStorage.set('token', token)
-		init()
+	})
+
+	// 下拉刷新处理函数
+	onPullDownRefresh(async () => {
+		try {
+			// 强制刷新会话列表
+			sessionStore.clearSessions();
+			handSessionList(new Object({ page_size: 40, sort_by: '-updated_at' }))
+		} catch (error) {
+			console.error('下拉刷新失败:', error)
+			uni.showToast({
+				title: '刷新失败',
+				icon: 'error',
+				duration: 2000
+			})
+			uni.stopPullDownRefresh()
+		}
 	})
 </script>
 

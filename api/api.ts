@@ -10,7 +10,7 @@ $.config = {
 		PRODUCT: 'http://14.103.131.43:15000/',
 	},
 	// 主机地址
-	Host: 'http://14.103.131.43:15000/',
+	Host: 'http://14.103.131.43:15000',
 	// 请求头（默认请求头为{"Content-Type": "application/json"}）
 	Header: () => {
 		const token = AppStorage.get('token')
@@ -41,7 +41,7 @@ $.onNotAuthChange = () => {
 // 获取用户信息
 export const GET_ME_INFO = () => $.get('api/users/me')
 // 获取消息列表
-export const GET_CHAT_HISTORY = (params ?: Object) => $.get('api/chat/history', params)
+export const GET_CHAT_HISTORY = (params ?: Object) => $.get('/api/chat/history', params)
 // 获取头像、图片
 export const GET_PHOTO = (params : string) => {
 	let result = $.config.Host + params;
@@ -49,18 +49,18 @@ export const GET_PHOTO = (params : string) => {
 	return $.config.Host + params
 }
 //获取部门
-export const GET_DEPARTMENTS_BY_ANGENT_ID = (dept_id : string) => $.get(`api/departments/${dept_id}`)
+export const GET_DEPARTMENTS_BY_ANGENT_ID = (dept_id : string) => $.get(`/api/departments/${dept_id}`)
 //获取可用的数字人
-export const GET_DIGITAL_HUMANS = (params : object) => $.get('api/agents/available/digital-humans', params)
+export const GET_DIGITAL_HUMANS = (params : object) => $.get('/api/agents/available/digital-humans', params)
 //获取可用的联系人 api/agents/available
-export const GET_AVAILABLE = (params : object) => $.get('api/agents/available', params)
+export const GET_AVAILABLE = (params : object) => $.get('/api/agents/available', params)
 //删除聊天
-export const DELETE_CONVERSATIONS = (conversation_id : string) => { return $.delete(`api/chat/conversations/${conversation_id}`) }
+export const DELETE_CONVERSATIONS = (conversation_id : string) => { return $.delete(`/api/chat/conversations/${conversation_id}`) }
 
 //获取对话消息历史
-export const GET_MESSAGE = (params : object) => $.get('api/chat/messages', params)
+export const GET_MESSAGE = (params : object) => $.get('/api/chat/messages', params)
 //停止回答
-export const POST_CHAT_STOP = (params ?: object) => $.post('api/chat/stop', params)
+export const POST_CHAT_STOP = (params ?: object) => $.post('/api/chat/stop', params)
 //接收问题消息的回答 todo流式实现
 /**
  * 发起聊天补全请求，并处理服务器发送事件（SSE）流式响应
@@ -74,10 +74,11 @@ export const POST_CHAT_COMPLETIONS = async (
 	header ?: object,
 	setTaskId ?: (taskId : string) => void,
 	onChar ?: (char : string) => void,
-	onDone ?: () => void
+	onDone ?: () => void,
+	setConversationId ?: (key : string) => void
 ) => {
 	// 构建请求URL（使用全局配置的基础地址）
-	const url = $.config.Host + 'api/chat/completions';
+	const url = $.config.Host + '/api/chat/completions';
 
 	// 合并请求头（优先使用传入的header，否则使用全局配置的Header）
 	const reqHeader = header ?? $.config.Header!();
@@ -126,8 +127,12 @@ export const POST_CHAT_COMPLETIONS = async (
 						setTaskId?.(data.task_id)
 						needPushTtaskId = false;
 					}
+
+					if (data.event === 'workflow_started' && setConversationId) {
+						setConversationId(data.conversation_id)
+					}
 					// 处理工作流结束事件
-					if (data.event === 'workflow_finished') {
+					if (data.event === 'workflow_finished' && onDone) {
 						onDone?.(); // 触发完成回调
 						await reader.cancel(); // 主动关闭流
 						return; // 直接结束函数

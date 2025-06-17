@@ -33,11 +33,13 @@
 	} from 'vue'
 	import { LinkManModel } from '@/models/LinkManModel'
 	import { GET_PHOTO } from '@/api/api'
-
+	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 
 	const props = defineProps<{
 		linkman : LinkManModel
 	}>()
+
+	const sessionStore = useChatSessionStore()
 
 	function getFirstChar(name : string) {
 		return name ? name.charAt(0).toUpperCase() : ''
@@ -45,11 +47,17 @@
 
 	const onItemClick = () => {
 		console.log('linkmanListItem onclink');
-		const agent_id = encodeURIComponent(props.linkman.agent_category_id ?? 'unKnow')
+		const agent_id = encodeURIComponent(props.linkman.userId ?? 'unKnow')
 		const agentName = encodeURIComponent(props.linkman.name)
 
+		const conversationId = () => {
+			const sessions = sessionStore.getSessions
+			const matchedSession = sessions.find(session => session.userId === props.linkman.userId)
+			return encodeURIComponent(matchedSession ? matchedSession.conversation_id : '')
+		}
+
 		uni.navigateTo({
-			url: `/pages/chat/chat?agent_id=${agent_id}&agentName=${agentName}`
+			url: `/pages/chat/chat?agent_id=${agent_id}&agentName=${agentName}&conversationId=${conversationId()}`
 		})
 	}
 </script>

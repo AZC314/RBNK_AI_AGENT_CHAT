@@ -1,11 +1,26 @@
 {
 	"vueVersion": "3",
-	"pages": [
-		{
-			"path": "pages/message/message"
+	"pages": [{
+			"path": "pages/message/message",
+			"style": {
+				"enablePullDownRefresh": true,
+				// "backgroundTextStyle": "dark",
+				"pullToRefresh": {
+					"color": "#1890ff", // 下拉箭头颜色（仅H5/部分小程序）
+					"background": "#F8F8F8" // 下拉区域背景色
+				}
+			}
 		},
 		{
-			"path": "pages/address/address"
+			"path": "pages/address/address",
+			"style": {
+				"enablePullDownRefresh": true,
+				// "backgroundTextStyle": "dark",
+				"pullToRefresh": {
+					"color": "#1890ff", // 下拉箭头颜色（仅H5/部分小程序）
+					"background": "#F8F8F8" // 下拉区域背景色
+				}
+			}
 		},
 		{
 			"path": "pages/chat/chat"
@@ -23,8 +38,7 @@
 		"selectedColor": "#0b8aff",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",
-		"list": [
-			{
+		"list": [{
 				"pagePath": "pages/message/message",
 				"iconPath": "/static/tabbar/message.png",
 				"selectedIconPath": "/static/tabbar/message_clinck.png",
