@@ -15,9 +15,28 @@
 		</uni-nav-bar>
 		<view class="chat-content">
 			<!-- <chat-message-list :msgList="msgList" :currentUID="myUid" @refresh="onRefresh" />-->
-			<chat-message-list :msgList="msgList" @refresh="onRefresh" />
+			<chat-message-list :msgList="msgList" @refresh="onRefresh" @feedback="onFeedback" />
 		</view>
-		<chat-input @send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
+		<uni-popup ref="popupRef" type="bottom" @close="closePopup">
+			<view class="feedback-popup-content">
+				<view class="popup-header">
+					<text class="popup-title">反馈</text>
+					<text class="popup-close" @click="closePopup">×</text>
+				</view>
+				<view class="popup-tags">
+					<view v-for="(tag, idx) in feedbackTags" :key="tag"
+						:class="['popup-tag', selectedTag === idx ? 'active' : '']" @click="selectTag(idx)">{{ tag }}
+					</view>
+				</view>
+				<view class="popup-textarea-wrapper">
+					<textarea v-model="feedbackText" class="popup-textarea" :placeholder="textareaPlaceholder"
+						auto-height />
+				</view>
+				<button class="popup-submit" @click="submitFeedback">提交</button>
+			</view>
+		</uni-popup>
+		<chat-input v-if="!popupVisible"
+			@send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
 			@image-upload="handleImageUpload" @attachment-upload="handleAttachmentUpload"
 			@voice-record="handleVoiceRecord" @toggle-settings="handleToggleSettings" @clear="handleClear" />
 	</view>
@@ -26,7 +45,7 @@
 <script lang="ts" setup>
 	import {
 		Ref, ref,
-		onMounted, onBeforeUnmount, watch
+		onMounted, onBeforeUnmount, watch, provide, reactive
 	} from 'vue'
 	import chatMessageList from '@/components/kit-chat/chat-message-list.vue'
 	import ChatInput from '@/components/kit-chat/chatInput.vue'
@@ -102,13 +121,13 @@
 				}
 			}
 
-			if(conversationId !== ''){
+			if (conversationId !== '') {
 				// 如果没有本地数据或数据超过1分钟，从服务器加载新数据
 				const res = await GET_MESSAGE({
 					conversation_id: conversationId,
 					limit: 10
 				});
-				
+
 				console.log('GET_MESSAGE success ' + JSON.stringify(res));
 				const data = res as Info.message[];
 				// 删除旧数据并添加新数据
@@ -300,23 +319,28 @@
 
 			canStopChat.value = true;
 
-			const params = {
+			const params : any = {
 				query: message,
 				inputs: {
-					agent_id: chatId,
-					is_think: 'N'
+					agent_id: Number(chatId),
+					// is_think: 'N'
 				},
 				response_mode: 'streaming',
-				conversation_id: conversationId,
 				auto_generate_name: true
 			};
+			if (conversationId !== '') {
+				params['conversation_id'] = conversationId;
+			}
 
 			const setTaskId = (id : string) => {
 				console.log('POST_CHAT_COMPLETIONS taskId', id);
 				taskId = id;
 			};
 
-			const setConversationId = (key : string) => { conversationId = key }
+			const setConversationId = (key : string) => {
+				console.log('conversationId从 ' + conversationId + ' 变更为' + key);
+				conversationId = key;
+			}
 
 			const onChar = (char : string) => {
 				console.log('Received char:', char);
@@ -355,7 +379,6 @@
 						sort_by: '-updated_at'
 					}) as ChatResponse;
 
-					const successfully = sessionStore.setSessionList(historyResponse.items);
 
 					if (successfully) {
 						const messageResponse = await GET_MESSAGE({
@@ -652,6 +675,37 @@
 			console.error('清空输入失败:', error);
 		}
 	};
+
+	const popupRef = ref(null)
+	const currentFeedbackMsg = ref(null)
+	const feedbackTags = ['有害/不安全', '虚假信息', '没有帮助', '其他']
+	const selectedTag = ref(0)
+	const feedbackText = ref('')
+	const textareaPlaceholder = '我们想知道你对此回答不满意的原因，你认为更好的回答是什么？'
+	const popupVisible = ref(false)
+	const feedbackMap = reactive(new Map()) // key: msg.id, value: {dislike: boolean, like: boolean}
+	provide('feedbackMap', feedbackMap)
+	function onFeedback(msg) {
+		currentFeedbackMsg.value = msg
+		popupVisible.value = true
+		popupRef.value && popupRef.value.open()
+	}
+	function selectTag(idx) {
+		selectedTag.value = idx
+	}
+	function closePopup() {
+		popupVisible.value = false
+		popupRef.value && popupRef.value.close()
+	}
+	function submitFeedback() {
+		if (currentFeedbackMsg.value) {
+			feedbackMap.set(currentFeedbackMsg.value.id, { dislike: true, like: false })
+		}
+		uni.showToast({ title: '感谢您的反馈', icon: 'none' })
+		closePopup()
+		feedbackText.value = ''
+		selectedTag.value = 0
+	}
 </script>
 
 
@@ -676,5 +730,100 @@
 		margin-bottom: 80px;
 		background-color: #f5f5f5;
 		padding-top: 10rpx;
+	}
+
+	.feedback-popup-content {
+		height: 33vh;
+		background: #fff;
+		border-top-left-radius: 24rpx;
+		border-top-right-radius: 24rpx;
+		box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.08);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 32rpx 32rpx 0 32rpx;
+		position: relative;
+	}
+
+	.popup-header {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: relative;
+		margin-bottom: 24rpx;
+	}
+
+	.popup-title {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #222;
+	}
+
+	.popup-close {
+		position: absolute;
+		right: 0;
+		top: 0;
+		font-size: 44rpx;
+		color: #999;
+		padding: 0 8rpx;
+		cursor: pointer;
+		line-height: 1;
+	}
+
+	.popup-tags {
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		margin-bottom: 32rpx;
+		justify-content: flex-start;
+	}
+
+	.popup-tag {
+		background: #f6f7fa;
+		color: #666;
+		border-radius: 12rpx;
+		padding: 12rpx 12rpx;
+		font-size: 28rpx;
+		margin-right: 0;
+		transition: background 0.2s, color 0.2s;
+		white-space: nowrap;
+	}
+
+	.popup-tag.active {
+		background: #e6f0ff;
+		color: #007aff;
+	}
+
+	.popup-textarea-wrapper {
+		width: 100%;
+		margin-bottom: 32rpx;
+	}
+
+	.popup-textarea {
+		width: 100%;
+		min-height: 120rpx;
+		background: #f6f7fa;
+		border-radius: 16rpx;
+		border: none;
+		font-size: 28rpx;
+		color: #666;
+		padding: 24rpx;
+		box-sizing: border-box;
+		resize: none;
+	}
+
+	.popup-submit {
+		width: 100%;
+		height: 88rpx;
+		background: #1677ff;
+		color: #fff;
+		font-size: 32rpx;
+		border-radius: 16rpx;
+		border: none;
+		margin-top: auto;
+		margin-bottom: 24rpx;
+		font-weight: 600;
 	}
 </style>

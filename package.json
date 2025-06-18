@@ -5,5 +5,8 @@
 		"marked": "^15.0.11",
 		"pinyin-match": "^1.2.8",
 		"vue": "^3.2.45"
+	},
+	"devDependencies": {
+		"sass": "^1.89.2"
 	}
 }

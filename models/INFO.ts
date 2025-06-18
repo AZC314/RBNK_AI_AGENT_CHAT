@@ -56,16 +56,22 @@ export namespace Info {
 	}
 	
 	export interface digitalHumans {
-		id : number,
-		name : string,
-		description:string,
-		icon:string,
-		is_active:boolean,
-		is_digital_human:boolean,
-		department_id:number,
-		department_name:string,
-		agent_category_id: number,
-		category:any
+	 id: number;
+	  name: string;  				//数字人姓名
+	  description: string;			//数值人描述
+	  icon: string;					//数值人头像
+	  is_active: boolean;
+	  is_digital_human: boolean;
+	  department_id: number | null;		//数值人部门ID
+	  department_name: string | null;  //数值人部门名称
+	  agent_category_id: number;     //agentID
+	  category: {    
+	    name: string;
+	    description: string;         
+	    id: number;
+	    created_at: string;  
+	    updated_at: string;  
+	  };
 	}
 	
 	export interface digitalHumansContext{

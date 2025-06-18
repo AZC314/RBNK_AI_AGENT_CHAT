@@ -54,11 +54,11 @@ export class LinkManModel {
 
 	static digitalHumans2LinkManModel(params : Info.digitalHumans) {
 		return new LinkManModel({
-			userId: params.id.toFixed(),
+			userId: params.id.toString(),
 			name: params.name,
-			department: params.department_name,
-			departmentId: params.department_id,
-			avatarUrl: params.icon ?? '',
+			department: params.department_name ?? '',
+			departmentId: params.department_id ?? 0,
+			avatarUrl: params.icon,
 			isOnline: params.is_active ?? false,
 			position: params.description,
 			phone: '',

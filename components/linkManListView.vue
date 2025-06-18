@@ -83,6 +83,7 @@
 			// margin-left: 8rpx;
 			background-color: #e8e8eb;
 			border-radius: 20rpx;
+			align-items: center;
 		}
 	}
 </style>

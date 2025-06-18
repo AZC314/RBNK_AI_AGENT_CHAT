@@ -238,7 +238,7 @@
 
 		}
 
-		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAxNDk0MzEsInN1YiI6IjEifQ.HHxnaPx7m6e5hvVeZHaUFSbMOxGAYyiG7Wu6f9ZFD-4';
+		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAyMzEwNDksInN1YiI6IjE4In0.0tNrZUTFD_S1HP2hDvwGvGuCG9wIq83nkeBGNiDp6yE';
 		AppStorage.set('token', token)
 	})
 

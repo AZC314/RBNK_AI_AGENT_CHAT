@@ -7,9 +7,9 @@
 				<kit-chat-system-msg v-if="msg.type === 'system'" :msg="msg.msg" />
 				<!-- 我发送的消息 -->
 				<kit-chat-my-msg v-else-if="msg.type === 'user' && msg.isSelf(myInfo.id ?? '000')" :msg="msg.msg"
-					@click="handleMessageClick" />
+					@favour_clinck="handleMessageClick" />
 				<!-- 对方发送的消息 -->
-				<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" />
+				<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" />
 			</template>
 			<!-- <EmptyState v-else :showImage="false" message="空" bgc="#fff" /> -->
 		</view>
@@ -41,7 +41,7 @@
 		// currentUID : string
 	}>()
 
-	const emit = defineEmits(['load-more', 'refresh'])
+	const emit = defineEmits(['load-more', 'refresh', 'feedback'])
 
 	const scrollTop = ref(0)
 	const oldScrollTop = ref(0)
@@ -142,6 +142,10 @@
 			default:
 				console.log('消息点击', type, content)
 		}
+	}
+
+	function handleFeedback(msg) {
+		emit('feedback', msg)
 	}
 </script>
 
