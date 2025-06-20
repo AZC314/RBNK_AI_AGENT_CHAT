@@ -41,14 +41,16 @@ export interface MessageContent {
 // 定义用户信息接口
 export interface UserInfo {
 	uid ?: string                 // 用户唯一 ID
-	agentId ?: string
+	agentId ?: string				//数字人ID
 	username ?: string            // 用户昵称
 	face ?: string                // 用户头像 URL
+	departmentName ?: string      //所属部门
+	departmentId ?: number			//所属部门ID
 }
 
 // 定义消息主体内容接口
 export interface InnerMessage {
-	id : string                  // 消息唯一 ID
+	id : string                  // 消息唯一 ID message_id 
 	type : MsgType               // 消息内容类型
 	content : MessageContent     // 消息内容体
 	userinfo ?: UserInfo         // 用户信息，仅 user 消息类型存在
@@ -112,8 +114,8 @@ export default class ChatMessage {
 				content: { text: params.query },
 				userinfo: {
 					uid: myInfo.id.toString(),
-					username:myInfo.username,
-					face:myInfo.avatar
+					username: myInfo.username,
+					face: myInfo.avatar
 				},
 				time: new Date(params.created_at),
 				conversation_id: params.conversation_id

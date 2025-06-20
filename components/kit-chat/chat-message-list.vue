@@ -9,7 +9,7 @@
 				<kit-chat-my-msg v-else-if="msg.type === 'user' && msg.isSelf(myInfo.id ?? '000')" :msg="msg.msg"
 					@favour_clinck="handleMessageClick" />
 				<!-- 对方发送的消息 -->
-				<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" />
+				<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" @like="handleLike" @dislike="handleDislike" @undislike="handleUndislike" @unlike="handleUnlike" />
 			</template>
 			<!-- <EmptyState v-else :showImage="false" message="空" bgc="#fff" /> -->
 		</view>
@@ -41,7 +41,7 @@
 		// currentUID : string
 	}>()
 
-	const emit = defineEmits(['load-more', 'refresh', 'feedback'])
+	const emit = defineEmits(['load-more', 'refresh', 'feedback', 'like', 'dislike', 'undislike', 'unlike'])
 
 	const scrollTop = ref(0)
 	const oldScrollTop = ref(0)
@@ -146,6 +146,22 @@
 
 	function handleFeedback(msg) {
 		emit('feedback', msg)
+	}
+
+	function handleLike(msg) {
+		emit('like', msg)
+	}
+
+	function handleDislike(msg) {
+		emit('dislike', msg)
+	}
+
+	function handleUndislike(msg) {
+		emit('undislike', msg)
+	}
+
+	function handleUnlike(msg) {
+		emit('unlike', msg)
 	}
 </script>
 

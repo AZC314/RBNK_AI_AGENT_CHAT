@@ -16,7 +16,7 @@ export const useChatSessionStore = defineStore('chatSession', {
 	}),
 
 	getters: {
-		getSessions(): SessionModel[] {
+		getSessions() : SessionModel[] {
 			return this.sessions
 		},
 
@@ -29,9 +29,9 @@ export const useChatSessionStore = defineStore('chatSession', {
 			try {
 				const storedSessions = AppStorage.get(SESSION_STORAGE_KEY)
 				const lastUpdateTime = AppStorage.get(LAST_UPDATE_TIME_KEY) || 0
-				
+
 				if (storedSessions) {
-					this.sessions = storedSessions.map((session: any) => {
+					this.sessions = storedSessions.map((session : any) => {
 						// 确保日期对象被正确转换
 						if (session.lastMessageTime) {
 							session.lastMessageTime = new Date(session.lastMessageTime)
@@ -39,9 +39,9 @@ export const useChatSessionStore = defineStore('chatSession', {
 						return new SessionModel(session)
 					})
 				}
-				
+
 				this.lastUpdateTime = lastUpdateTime
-				
+
 				// 检查是否需要更新数据
 				const now = Date.now()
 				if (now - this.lastUpdateTime > UPDATE_INTERVAL) {
@@ -65,8 +65,8 @@ export const useChatSessionStore = defineStore('chatSession', {
 		},
 
 		// 设置或更新单个 session（基于 userId）
-		addOrUpdateSession(item: Info.ChatHistory | SessionModel) {
-			let data: SessionModel =
+		addOrUpdateSession(item : Info.ChatHistory | SessionModel) {
+			let data : SessionModel =
 				item instanceof SessionModel ? item :
 					SessionModel.chatHistory2SessionModel(item as Info.ChatHistory)
 
@@ -79,16 +79,16 @@ export const useChatSessionStore = defineStore('chatSession', {
 					this.sessions[index] = data
 				}
 				this.saveToStorage()
-				return false // 未插入，是更新
+				return index // 未插入，是更新 返回下标
 			} else {
 				this.sessions.push(data)
 				this.saveToStorage()
-				return true // 新插入
+				return this.sessions.length - 1 // 新插入返回下标
 			}
 		},
 
 		// 批量设置/合并 sessions
-		setSessionList(list: (Info.ChatHistory | SessionModel)[]): number {
+		setSessionList(list : (Info.ChatHistory | SessionModel)[]) : number {
 			let insertedCount = 0
 
 			for (const item of list) {
@@ -119,11 +119,11 @@ export const useChatSessionStore = defineStore('chatSession', {
 		},
 
 		// 删除某个会话
-		removeSession(conversationId: string) {
-			this.sessions = this.sessions.filter(item => item.userId !== conversationId)
+		removeSession(agentId : string) {
+			this.sessions = this.sessions.filter(item => item.userId !== agentId)
 			this.saveToStorage()
 		},
-		getSessionByAgentId(agentId?: number): SessionModel {
+		getSessionByAgentId(agentId ?: number) : SessionModel {
 			let id = agentId ? agentId : AppStorage.get('currentAgentId') as number
 			console.log('getSessionByAgentId id = ' + id)
 			const index = this.sessions.findIndex(elem => elem.userId === id.toString())

@@ -13,7 +13,7 @@
 		onMounted,
 		computed
 	} from 'vue'
-	import { onLoad } from '@dcloudio/uni-app'
+	import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 	import SearchBox from '@/components/searchBox.vue'
 	import LinkManListView from '@/components/linkManListView.vue'
 	import PinyinMatch from 'pinyin-match'
@@ -68,11 +68,11 @@
 
 	// 接收页面参数
 	onLoad(() => {
-		
-		
+
+
 	})
 	// 下拉刷新处理函数
-	async function onPullDownRefresh() {
+	onPullDownRefresh(() => {
 		try {
 			// 清空现有数据
 			AppStorage.set('contacts', [])
@@ -90,7 +90,7 @@
 			})
 			uni.stopPullDownRefresh()
 		}
-	}
+	})
 
 	//过滤联系人列表
 	// 安全的匹配函数，避免 null/undefined 报错

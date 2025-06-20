@@ -39,7 +39,7 @@ $.onNotAuthChange = () => {
 // 接口
 
 // 获取用户信息
-export const GET_ME_INFO = () => $.get('api/users/me')
+export const GET_ME_INFO = () => $.get('/api/users/me')
 // 获取消息列表
 export const GET_CHAT_HISTORY = (params ?: Object) => $.get('/api/chat/history', params)
 // 获取头像、图片
@@ -61,21 +61,27 @@ export const DELETE_CONVERSATIONS = (conversation_id : string) => { return $.del
 export const GET_MESSAGE = (params : object) => $.get('/api/chat/messages', params)
 //停止回答
 export const POST_CHAT_STOP = (params ?: object) => $.post('/api/chat/stop', params)
+//反馈评价数值人的输出内容
+export const POST_MESSAGE_FEEDBACK = (params : { conversation_id : string, message_id : string, rating ?: "dislike" | "like", content ?: string }) => $.post(`/api/chat/conversations/${params.conversation_id}/messages/${params.message_id}/feedback`, new Object({rating:params?.rating,content:params?.content}))
+
+
+
+
 //接收问题消息的回答 todo流式实现
 /**
  * 发起聊天补全请求，并处理服务器发送事件（SSE）流式响应
  * @param params 请求参数（消息等）
  * @param header 自定义请求头（可选，默认使用全局配置）
+ * @param getWorkflowInfo 获取当前消息的相关信息的回调
  * @param onChar 逐字符回调函数（用于实时显示流式输出）
  * @param onDone 流式传输完成回调函数
  */
 export const POST_CHAT_COMPLETIONS = async (
 	params ?: object,
 	header ?: object,
-	setTaskId ?: (taskId : string) => void,
-	onChar ?: (char : string) => void,
-	onDone ?: () => void,
-	setConversationId ?: (key : string) => void
+	getWorkflowInfo ?: (options : Record<string, string>) => void,
+	onChar ?: (char : string, messageId : string) => void,
+	onDone ?: () => void
 ) => {
 	// 构建请求URL（使用全局配置的基础地址）
 	const url = $.config.Host + '/api/chat/completions';
@@ -98,7 +104,6 @@ export const POST_CHAT_COMPLETIONS = async (
 		// 用于解码流数据的工具
 		const decoder = new TextDecoder('utf-8');
 		let buffer = ''; // 缓冲区，用于存储未完整接收的数据块
-		let needPushTtaskId = true;
 		// 持续读取流数据
 		while (true) {
 			const { value, done } = await reader.read();
@@ -123,13 +128,14 @@ export const POST_CHAT_COMPLETIONS = async (
 
 				try {
 					const data = JSON.parse(jsonStr);
-					if (needPushTtaskId && data.task_id) {
-						setTaskId?.(data.task_id)
-						needPushTtaskId = false;
-					}
-
-					if (data.event === 'workflow_started' && setConversationId) {
-						setConversationId(data.conversation_id)
+					if (data.event === 'workflow_started' && getWorkflowInfo) {
+						const options : Record<string, string> = {
+							conversation_id: data.conversation_id,
+							message_id: data.message_id,
+							created_at: data.created_at,
+							task_id: data.task_id,
+						}
+						getWorkflowInfo(options);
 					}
 					// 处理工作流结束事件
 					if (data.event === 'workflow_finished' && onDone) {
@@ -140,7 +146,7 @@ export const POST_CHAT_COMPLETIONS = async (
 
 					// 处理消息事件（逐字符输出）
 					if (data.event === 'message' && typeof data.answer === 'string') {
-						onChar?.(data.answer); // 触发字符回调
+						onChar?.(data.answer, data.message_id); // 触发字符回调
 						await delayChar(); // 控制输出速度（模拟打字机效果）
 					}
 				} catch (e) {

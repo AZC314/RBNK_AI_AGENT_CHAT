@@ -33,7 +33,9 @@
 	} from 'vue'
 	import { LinkManModel } from '@/models/LinkManModel'
 	import { GET_PHOTO } from '@/api/api'
+	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 
+	const sessionStore = useChatSessionStore()
 
 	const props = defineProps<{
 		linkman : LinkManModel
@@ -49,12 +51,12 @@
 		const agentName = encodeURIComponent(props.linkman.name)
 
 		const conversationId = () => {
-			
-			return ''
+			const session = sessionStore.getSessionByAgentId(+props.linkman.userId)
+			return session ? session.conversation_id : ''
 		}
 
 		uni.navigateTo({
-			url: `/pages/chat/chat?agent_id=${agent_id}&agentName=${agentName}&conversationId=${conversationId}`
+			url: `/pages/chat/chat?agent_id=${agent_id}&agentName=${agentName}&conversationId=${conversationId()}`
 		})
 	}
 </script>

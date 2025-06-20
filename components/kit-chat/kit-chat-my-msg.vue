@@ -1,6 +1,9 @@
 <template>
 	<view class="chat-item my">
-		<image class="avatar" :src="msg.userinfo.face" />
+		<view class="avatar-container">
+			<image v-if="msg.userinfo.face" class="avatar" :src="msg.userinfo.face" mode="aspectFill" />
+			<view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view>
+		</view>
 		<view class="message-wrapper">
 			<view class="bubble" :class="{ 'is-media': isMediaMsg }">
 				<component :is="resolveComponent()" :content="msg.content" @click="handleMessageClick" />
@@ -36,6 +39,10 @@
 
 	const emit = defineEmits(['click'])
 	const handleMessageClick = (type : string, content : any) => { emit('click', type, content) }
+
+	function getFirstChar(name : string) {
+		return name ? name.charAt(0).toUpperCase() : ''
+	}
 </script>
 
 <style lang="scss" scoped>
@@ -95,12 +102,32 @@
 		}
 	}
 
-	.avatar {
+	.avatar-container {
 		width: 80rpx;
 		height: 80rpx;
-		border-radius: 50%;
-		margin-left: 20rpx; // ✅ 与气泡留出距离
+		margin-left: 20rpx;
+		margin-right: 0;
+		position: relative;
 		flex-shrink: 0;
+	}
+
+	.avatar {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+	}
+
+	.avatar-placeholder {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		background-color: #1890ff;
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 32rpx;
+		font-weight: bold;
 	}
 
 	.message-wrapper {

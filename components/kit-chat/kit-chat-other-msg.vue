@@ -1,16 +1,21 @@
 <template>
 	<view class="chat-item other">
-		<image class="avatar" :src="msg.userinfo.face" />
+		<view class="avatar-container">
+			<image v-if="msg.userinfo.face" class="avatar" :src="msg.userinfo.face" mode="aspectFill" />
+			<view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view>
+		</view>
 		<view class="message-wrapper">
 			<view class="bubble" :class="{ 'is-media': isMediaMsg }">
 				<component :is="resolveComponent()" :content="msg.content" @click="handleMessageClick" />
 			</view>
 			<view class="message-initeract">
 				<view class="feedback-btn" hover-class="feedback-btn-hover" @click="handleFavourClick">
-					<image :src="favourActive ? '/static/icons/favour_clinck.png' : '/static/icons/favour.png'" mode="aspectFit" />
+					<image :src="favourActive ? '/static/icons/favour_clinck.png' : '/static/icons/favour.png'"
+						mode="aspectFit" />
 				</view>
 				<view class="feedback-btn rotated-image" hover-class="feedback-btn-hover" @click="handleFeedbackClick">
-					<image :src="dislikeActive ? '/static/icons/favour_clinck.png' : '/static/icons/favour.png'" mode="aspectFit" />
+					<image :src="dislikeActive ? '/static/icons/favour_clinck.png' : '/static/icons/favour.png'"
+						mode="aspectFit" />
 				</view>
 				<view class="feedback-btn" hover-class="feedback-btn-hover" @click="handleCopyClick">
 					<image src="/static/icons/copy.png" mode="aspectFit" />
@@ -32,10 +37,11 @@
 	import KitListChartMsg from '@/components/kit-chat/elements/kit-list-chart-msg.vue'
 	import { InnerMessage } from '@/models/ChatMessage'
 	import { ref, inject, computed } from 'vue'
+	import { POST_MESSAGE_FEEDBACK } from '@/api/api'
 
-	const props = defineProps<{ msg : InnerMessage }>()
-	const emit = defineEmits(['click', 'feedback'])
-	const feedbackMap = inject('feedbackMap')
+	const props = defineProps<{ msg : InnerMessage}>()
+	const emit = defineEmits(['click', 'like', 'dislike', 'undislike', 'unlike'])
+	const feedbackMap = inject('feedbackMap') as any
 
 	const favourActive = computed(() => {
 		const state = feedbackMap?.get(props.msg.id)
@@ -66,18 +72,23 @@
 	}
 
 	function handleFavourClick() {
-		if (dislikeActive.value) {
-			feedbackMap.set(props.msg.id, { like: true, dislike: false })
-		} else if (favourActive.value) {
+		if (favourActive.value) {
 			feedbackMap.set(props.msg.id, { ...feedbackMap.get(props.msg.id), like: false })
+			emit('unlike', props.msg)
 		} else {
 			feedbackMap.set(props.msg.id, { ...feedbackMap.get(props.msg.id), like: true, dislike: false })
+			emit('like', props.msg)
 		}
 	}
 	function handleFeedbackClick() {
-		emit('feedback', props.msg)
+		if (dislikeActive.value) {
+			feedbackMap.set(props.msg.id, { ...feedbackMap.get(props.msg.id), dislike: false })
+			emit('undislike', props.msg)
+		} else {
+			emit('dislike', props.msg)
+		}
 	}
-	
+
 	function handleCopyClick() {
 		let text = ''
 		if ((props.msg.type === 'text' || props.msg.type === 'markdown') && props.msg.content.text) {
@@ -98,6 +109,10 @@
 			}
 		})
 	}
+
+	function getFirstChar(name : string) {
+		return name ? name.charAt(0).toUpperCase() : ''
+	}
 </script>
 
 <style lang="scss" scoped>
@@ -115,8 +130,32 @@
 		justify-content: flex-start;
 		padding-left: 15rpx;
 
-		.avatar {
+		.avatar-container {
+			width: 80rpx;
+			height: 80rpx;
 			margin-right: 10rpx;
+			margin-left: 0;
+			position: relative;
+			flex-shrink: 0;
+		}
+
+		.avatar {
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+		}
+
+		.avatar-placeholder {
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background-color: #1890ff;
+			color: #fff;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 32rpx;
+			font-weight: bold;
 		}
 
 		.bubble {
@@ -171,7 +210,7 @@
 		height: 56rpx;
 		border-radius: 50%;
 		background: #fff;
-		box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.08);
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -181,7 +220,7 @@
 	}
 
 	.feedback-btn-hover {
-		box-shadow: 0 4rpx 16rpx rgba(11,138,255,0.12);
+		box-shadow: 0 4rpx 16rpx rgba(11, 138, 255, 0.12);
 		border-color: #0b8aff;
 	}
 
@@ -199,7 +238,7 @@
 		background: #fff;
 		border-top-left-radius: 24rpx;
 		border-top-right-radius: 24rpx;
-		box-shadow: 0 -2rpx 16rpx rgba(0,0,0,0.08);
+		box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.08);
 		display: flex;
 		align-items: center;
 		justify-content: center;

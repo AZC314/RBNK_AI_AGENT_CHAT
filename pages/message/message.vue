@@ -39,7 +39,7 @@
 	import { ImgTool } from '@/tools/imgTool'
 	import SessionListItemView from '@/components/sessionListItemView.vue'
 	import kitListItem from '@/components/kit-List-Item.vue'
-	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_ME_INFO } from '@/api/api'
+	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_DEPARTMENTS_BY_ANGENT_ID, GET_ME_INFO } from '@/api/api'
 	import { AppStorage } from '@/stores/AppStorage'
 	import { Info } from '@/models/INFO.ts'
 	import { useMessageStore } from '@/stores/useMessageStore'
@@ -51,6 +51,7 @@
 	declare const uni : any
 	declare const getCurrentPages : () => any[]
 	const sessionStore = useChatSessionStore()
+	const messageStore = useMessageStore()
 
 	//搜索框内容
 	const searchText = ref('')
@@ -61,7 +62,6 @@
 
 
 	const init = async () => {
-		hamdleMeInfo()
 		// 初始化store并检查是否需要更新
 		const needUpdate = await sessionStore.initStore()
 
@@ -70,18 +70,20 @@
 		}
 	}
 
-	function hamdleMeInfo() {
-		GET_ME_INFO().then((res) => {
-			console.log('GET_ME_INFO 成功：', JSON.stringify(res));
-			if (res.data) {
-				AppStorage.set(USER_INFO, res.data as Info.User);
-			} else {
-				console.warn('GET_ME_INFO 返回数据为空');
-			}
-		})
+	function handleMeInfo(callback : (userInfo : Info.User) => void) {
+		GET_ME_INFO()
+			.then((res) => {
+				console.log('GET_ME_INFO 成功：', JSON.stringify(res));
+
+				if (res?.data) {
+					callback(res.data as Info.User);
+				} else {
+					console.warn('GET_ME_INFO 返回数据为空');
+				}
+			})
 			.catch((err) => {
 				console.error('GET_ME_INFO 失败：', err);
-			})
+			});
 	}
 
 	function handSessionList(params : object) {
@@ -181,6 +183,8 @@
 
 			DELETE_CONVERSATIONS(session.conversation_id).then((res) => {
 				console.log('DELETE_CONVERSATIONS success' + JSON.stringify(res));
+				sessionStore.removeSession(session.userId);
+				messageStore.deleteMessages(session.userId);
 			})
 				.catch((err) => {
 					console.log('DELETE_CONVERSATIONS fail' + err.data.detail);
@@ -203,18 +207,16 @@
 		}
 
 		const agent_id = encodeURIComponent(session.userId)
-		const agentName = encodeURIComponent(session.username)
-		AppStorage.set('currentAgentId', agent_id)
-		// AppStorage.set('currentConversationId', session.conversation_id)
-		// sessionStore.setCurrentConversationId(session.conversation_id)
 		const currentAgentInfo : UserInfo = {
-			uid: Date.now().toString(),
+			agentId: session.userId,
 			username: session.username,
-			face: session.avatarUrl
+			face: session.avatarUrl,
+			departmentName: '数据管理部',
+			departmentId:1
 		}
 		AppStorage.set(CURRENT_ANENT_INFO, currentAgentInfo)
 		uni.navigateTo({
-			url: `../chat/chat?agent_id=${agent_id}&agentName=${agentName}&conversationId=${session.conversation_id}`
+			url: `../chat/chat?agent_id=${agent_id}&conversationId=${session.conversation_id}`
 		})
 	}
 
@@ -238,8 +240,16 @@
 
 		}
 
-		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAyMzEwNDksInN1YiI6IjE4In0.0tNrZUTFD_S1HP2hDvwGvGuCG9wIq83nkeBGNiDp6yE';
+		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAzODQ0NTUsInN1YiI6IjE4In0.krQ9KGQYs9ci0iOE2QxmqxwcC_snc1-UKuUgo_bzUpQ';
 		AppStorage.set('token', token)
+		handleMeInfo((data : Info.User) => {
+			const old = AppStorage.get(USER_INFO) as Info.User
+			messageStore.loadFromStorage()
+			if (old.id != data.id) {
+				AppStorage.set(USER_INFO, data)
+				messageStore.clearAllMessages()
+			}
+		})
 	})
 
 	// 下拉刷新处理函数

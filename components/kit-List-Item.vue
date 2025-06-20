@@ -59,9 +59,9 @@
 		// const id = encodeURIComponent(props.session.userId)
 		// const title = encodeURIComponent(`${props.session.department} ${props.session.username}`)
 		// url: `/pages/chat/chat?id=${id}&navbarTitle=${title}`
-		uni.navigateTo({
-			url: `/pages/chat/chat`
-		})
+		// uni.navigateTo({
+		// 	url: `/pages/chat/chat`
+		// })
 	}
 	/**
 	 * 获取用户部门信息

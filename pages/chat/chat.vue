@@ -15,9 +15,10 @@
 		</uni-nav-bar>
 		<view class="chat-content">
 			<!-- <chat-message-list :msgList="msgList" :currentUID="myUid" @refresh="onRefresh" />-->
-			<chat-message-list :msgList="msgList" @refresh="onRefresh" @feedback="onFeedback" />
+			<chat-message-list :msgList="msgList" @refresh="onRefresh" @feedback="onFeedback" @like="onLike"
+				@dislike="onDislike" @undislike="onUndislike" @unlike="onUnlike" />
 		</view>
-		<uni-popup ref="popupRef" type="bottom" @close="closePopup">
+		<uni-popup ref="popupRef" type="bottom" @close="closePopup" @maskClick="closePopup">
 			<view class="feedback-popup-content">
 				<view class="popup-header">
 					<text class="popup-title">反馈</text>
@@ -35,8 +36,7 @@
 				<button class="popup-submit" @click="submitFeedback">提交</button>
 			</view>
 		</uni-popup>
-		<chat-input v-if="!popupVisible"
-			@send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
+		<chat-input v-if="!popupVisible" @send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
 			@image-upload="handleImageUpload" @attachment-upload="handleAttachmentUpload"
 			@voice-record="handleVoiceRecord" @toggle-settings="handleToggleSettings" @clear="handleClear" />
 	</view>
@@ -47,16 +47,18 @@
 		Ref, ref,
 		onMounted, onBeforeUnmount, watch, provide, reactive
 	} from 'vue'
+	import { onLoad } from '@dcloudio/uni-app'
 	import chatMessageList from '@/components/kit-chat/chat-message-list.vue'
 	import ChatInput from '@/components/kit-chat/chatInput.vue'
 	import ChatMessage, { InnerMessage, MessageContent, UserInfo } from '@/models/ChatMessage'
-	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_MESSAGE, POST_CHAT_COMPLETIONS, POST_CHAT_STOP } from '@/api/api'
+	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_MESSAGE, POST_CHAT_COMPLETIONS, POST_CHAT_STOP, POST_MESSAGE_FEEDBACK } from '@/api/api'
 	import { Info } from '@/models/INFO'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 	import { useMessageStore } from '@/stores/useMessageStore'
 	import { SessionModel } from '@/models/sessionModel'
 	import { AppStorage } from '@/stores/AppStorage'
 	import { CONVERSATIONID, CURRENT_ANENT_INFO } from '@/constances/constances'
+	import { options } from 'marked'
 
 	// 声明全局类型
 	declare const uni : any
@@ -76,7 +78,7 @@
 	const isRefreshing : Ref<boolean> = ref(false)
 	const canStopChat : Ref<boolean> = ref(false)
 	//流式回答的内容当前消息编号
-	let currentTextID = ''
+	let messageId = ''
 	let taskId = ''
 
 	// 添加类型定义
@@ -140,23 +142,21 @@
 		}
 	}
 
-	// H5 页面初始化（通过 getCurrentPages 获取传参）
-	onMounted(() => {
-		currentTextID = (Date.now() * Math.random() | 0).toString()
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		const options = currentPage.$page.options
-
-		if (options.agent_id) {
+	onLoad((options) => {
+		if (options?.agent_id) {
 			chatId = decodeURIComponent(options.agent_id)
 		}
-		if (options.agentName) {
-			chatTitle.value = decodeURIComponent(options.agentName)
-		}
-		if (options.conversationId) {
+		if (options?.conversationId) {
 			conversationId = decodeURIComponent(options.conversationId)
 		}
-		AppStorage.set('textIDList', '')
+		const info = AppStorage.get(CURRENT_ANENT_INFO) as UserInfo
+		chatTitle.value = info.username!;
+		
+		
+	})
+	// H5 页面初始化（通过 getCurrentPages 获取传参）
+	onMounted(() => {
+		messageId = String(Date.now() * Math.random() | 0)
 		init();
 
 
@@ -323,7 +323,7 @@
 				query: message,
 				inputs: {
 					agent_id: Number(chatId),
-					// is_think: 'N'
+					is_think: "N"
 				},
 				response_mode: 'streaming',
 				auto_generate_name: true
@@ -332,27 +332,28 @@
 				params['conversation_id'] = conversationId;
 			}
 
-			const setTaskId = (id : string) => {
-				console.log('POST_CHAT_COMPLETIONS taskId', id);
-				taskId = id;
-			};
-
-			const setConversationId = (key : string) => {
-				console.log('conversationId从 ' + conversationId + ' 变更为' + key);
-				conversationId = key;
+			const getWorkflowInfo = (params : Record<string, string>) => {
+				console.log('POST_CHAT_COMPLETIONS getWorkflowInfo', params);
+				taskId = params['task_id'];
+				conversationId = params['conversation_id']
+				// created_at = params['created_at']
 			}
 
-			const onChar = (char : string) => {
+			const onChar = (char : string, msgId : string) => {
 				console.log('Received char:', char);
-				const existingStreamMsg = msgList.value.find(msg => msg.msg.id === currentTextID);
+				const existingStreamMsg = msgList.value.find(msg => msg.msg.id === messageId);
 
 				if (existingStreamMsg) {
 					existingStreamMsg.msg.content.text += char;
+					if (msgId !== existingStreamMsg.msg.id) {
+						existingStreamMsg.msg.id = msgId;
+						messageId = msgId;
+					}
 				} else {
 					msgList.value.push(new ChatMessage({
 						type: 'user',
 						msg: {
-							id: currentTextID,
+							id: messageId,
 							type: 'markdown',
 							content: { text: char },
 							userinfo: otherInfo,
@@ -366,10 +367,7 @@
 			const onDone = async () => {
 				try {
 					canStopChat.value = false;
-					const textIDList = AppStorage.get('textIDList') as string[] ?? [];
-					const newTextIdList = [...textIDList, currentTextID];
-					AppStorage.set('textIDList', newTextIdList);
-					currentTextID = (Date.now() * Math.random() | 0).toString();
+					messageId = String(Date.now() * Math.random() | 0);
 
 					// 更新会话历史
 					const historyResponse = await GET_CHAT_HISTORY({
@@ -378,8 +376,7 @@
 						page_size: 1,
 						sort_by: '-updated_at'
 					}) as ChatResponse;
-
-
+					const successfully = sessionStore.addOrUpdateSession(historyResponse.items[0] as Info.ChatHistory)
 					if (successfully) {
 						const messageResponse = await GET_MESSAGE({
 							conversation_id: conversationId,
@@ -400,7 +397,7 @@
 				}
 			};
 
-			await POST_CHAT_COMPLETIONS(params, undefined, setTaskId, onChar, onDone, setConversationId);
+			await POST_CHAT_COMPLETIONS(params, undefined, getWorkflowInfo, onChar, onDone);
 		} catch (error) {
 			console.error('Error in handleSend:', error);
 			uni.showToast({
@@ -660,10 +657,12 @@
 				confirmColor: '#1890ff',
 				success: function (res) {
 					if (res.confirm) {
-						sessionStore.removeSession(conversationId);
-						messageStore.deleteMessages(chatId)
-						msgList.value = []
+
+						sessionStore.saveToStorage()
 						DELETE_CONVERSATIONS(conversationId).then(res => {
+							sessionStore.removeSession(chatId);
+							messageStore.deleteMessages(chatId);
+							msgList.value = []
 							console.log('清除成功');
 						}).catch(err => {
 							console.log('清除失败' + JSON.stringify(err));
@@ -694,17 +693,62 @@
 		selectedTag.value = idx
 	}
 	function closePopup() {
+		messageId = String(Date.now() * Math.random() | 0)
 		popupVisible.value = false
 		popupRef.value && popupRef.value.close()
 	}
 	function submitFeedback() {
-		if (currentFeedbackMsg.value) {
-			feedbackMap.set(currentFeedbackMsg.value.id, { dislike: true, like: false })
+		try {
+			POST_MESSAGE_FEEDBACK({
+				conversation_id: conversationId,
+				message_id: messageId,
+				rating: "dislike",
+				content: feedbackText.value
+			}).then(res => {
+				console.log('POST_MESSAGE_FEEDBACK dislike succes ' + JSON.stringify(res));
+			}).then(err => {
+				console.log(err);
+			})
+			if (currentFeedbackMsg.value) {
+				feedbackMap.set(currentFeedbackMsg.value.id, { dislike: true, like: false })
+			}
+			uni.showToast({ title: '感谢您的反馈', icon: 'none' })
+			closePopup()
+			feedbackText.value = ''
+			selectedTag.value = 0
+		} catch (error) {
+			console.log('submitFeedback fail' + error);
 		}
-		uni.showToast({ title: '感谢您的反馈', icon: 'none' })
-		closePopup()
-		feedbackText.value = ''
-		selectedTag.value = 0
+	}
+	function onLike(msg : InnerMessage) {
+		try {
+			POST_MESSAGE_FEEDBACK({
+				conversation_id: msg.conversation_id,
+				message_id: msg.id,
+				rating: "like",
+				content: ""
+			}).then((res) => {
+				console.log('POST_MESSAGE_FEEDBACK like success' + JSON.stringify(res));
+			})
+				.catch((err) => {
+					console.log('POST_MESSAGE_FEEDBACK fail' + err);
+				})
+		} catch (error) {
+			//TODO handle the exception
+			console.log('POST_MESSAGE_FEEDBACK fail' + error);
+		}
+	}
+	function onDislike(msg : InnerMessage) {
+		onFeedback(msg)
+		messageId = msg.id;
+	}
+	function onUndislike(msg : InnerMessage) {
+		// 预留处理位置
+		console.log('用户取消了不喜欢', msg)
+	}
+	function onUnlike(msg : InnerMessage) {
+		// 预留处理位置
+		console.log('用户取消了喜欢', msg)
 	}
 </script>
 
