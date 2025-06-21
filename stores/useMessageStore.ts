@@ -51,6 +51,14 @@ export const useMessageStore = defineStore('message', {
             await addMessageToDB(message)
             this.saveToStorage()
         },
+		async unshiftAddMessage(key: string, message: any) {
+            if (!this.messagesMap[key]) {
+                this.messagesMap[key] = []
+            }
+            this.messagesMap[key].unshift(...message as Info.message[])
+            await addMessageToDB(message)
+            this.saveToStorage()
+        },
 
         async deleteMessages(key: string) {
             this.messagesMap[key] = []

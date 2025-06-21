@@ -38,20 +38,23 @@
 	import { DateTool } from '@/tools/DateTool.ts'
 	import { ImgTool } from '@/tools/imgTool'
 	import SessionListItemView from '@/components/sessionListItemView.vue'
-	import kitListItem from '@/components/kit-List-Item.vue'
+	import kitListItem from '@/pages/message/kit/kit-List-Item.vue'
 	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_DEPARTMENTS_BY_ANGENT_ID, GET_ME_INFO } from '@/api/api'
 	import { AppStorage } from '@/stores/AppStorage'
 	import { Info } from '@/models/INFO.ts'
 	import { useMessageStore } from '@/stores/useMessageStore'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
-	import ChatMessage, { UserInfo } from 'models/ChatMessage'
-	import { CURRENT_ANENT_INFO, USER_INFO } from '@/constances/constances'
+	
+	import ChatMessage, { UserInfo } from '@/models/ChatMessage'
+	import { ADDRESS, CURRENT_ANENT_INFO, TOKEN, USER_INFO } from '@/constances/constances'
+import { LinkManModel } from 'models/LinkManModel'
 
 	// 声明全局类型
 	declare const uni : any
 	declare const getCurrentPages : () => any[]
 	const sessionStore = useChatSessionStore()
 	const messageStore = useMessageStore()
+
 
 	//搜索框内容
 	const searchText = ref('')
@@ -205,14 +208,31 @@
 			console.log('[拦截] 按钮点击后触发，阻止跳转')
 			return
 		}
-
 		const agent_id = encodeURIComponent(session.userId)
-		const currentAgentInfo : UserInfo = {
-			agentId: session.userId,
-			username: session.username,
-			face: session.avatarUrl,
-			departmentName: '数据管理部',
-			departmentId:1
+		const getDepartmentInfo = (): Record<string, string> | undefined => {
+		    const linkman = AppStorage.get(ADDRESS) as LinkManModel[];
+		    const currentLinkman = linkman.find(value => value.userId === session.userId);
+		    
+		    if (currentLinkman) {
+		        return {
+		            departmentName: currentLinkman.department,
+		            departmentId: currentLinkman.departmentId.toString()
+		        };
+		    }
+		    return {
+				departmentName:'',
+				departmentId: '0'
+			};
+		};
+		
+		const departmentInfo = getDepartmentInfo() || { departmentName: '', departmentId: '0' }
+		
+		const currentAgentInfo: UserInfo = {
+		  agentId: session.userId,
+		  username: session.username,
+		  face: session.avatarUrl,
+		  departmentName: departmentInfo['departmentName'],
+		  departmentId: +departmentInfo['departmentId']
 		}
 		AppStorage.set(CURRENT_ANENT_INFO, currentAgentInfo)
 		uni.navigateTo({
@@ -239,9 +259,8 @@
 		if (options?.id) {
 
 		}
-
-		const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTAzODQ0NTUsInN1YiI6IjE4In0.krQ9KGQYs9ci0iOE2QxmqxwcC_snc1-UKuUgo_bzUpQ';
-		AppStorage.set('token', token)
+		// const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA0MDUzNjYsInN1YiI6IjEifQ.eWSjuC4wn1vvBTnajjq20iZm45B_1V50T29qjynq-c4';
+		// AppStorage.set('token', token)
 		handleMeInfo((data : Info.User) => {
 			const old = AppStorage.get(USER_INFO) as Info.User
 			messageStore.loadFromStorage()

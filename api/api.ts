@@ -1,13 +1,14 @@
 // api/api.ts
 import { $ } from '@/tools/request'
 import { AppStorage } from '@/stores/AppStorage'
+import { REF_TOKEN, TOKEN } from 'constances/constances'
 
 $.config = {
 	// 环境地址：DEVELOPER研发地址、TEST测试地址、PRODUCT产品地址
 	EnvBase: {
-		DEVELOPER: 'http://14.103.131.43:15000/',
-		TEST: 'http://14.103.131.43:15000/',
-		PRODUCT: 'http://14.103.131.43:15000/',
+		DEVELOPER: 'http://14.103.131.43:15000',
+		TEST: 'http://14.103.131.43:15000',
+		PRODUCT: 'http://14.103.131.43:15000',
 	},
 	// 主机地址
 	Host: 'http://14.103.131.43:15000',
@@ -37,6 +38,10 @@ $.onNotAuthChange = () => {
 }
 
 // 接口
+//登录
+export const POSYT_LOGIN = (params ?: Object) => $.post('/api/auth/login', params)
+//刷新Token
+// const refreshAccessToken = 
 
 // 获取用户信息
 export const GET_ME_INFO = () => $.get('/api/users/me')
@@ -50,9 +55,7 @@ export const GET_PHOTO = (params : string) => {
 }
 //获取部门
 export const GET_DEPARTMENTS_BY_ANGENT_ID = (dept_id : string) => $.get(`/api/departments/${dept_id}`)
-//获取可用的数字人
-export const GET_DIGITAL_HUMANS = (params : object) => $.get('/api/agents/available/digital-humans', params)
-//获取可用的联系人 api/agents/available
+//获取可用的数值人 api/agents/available
 export const GET_AVAILABLE = (params : object) => $.get('/api/agents/available', params)
 //删除聊天
 export const DELETE_CONVERSATIONS = (conversation_id : string) => { return $.delete(`/api/chat/conversations/${conversation_id}`) }
@@ -62,7 +65,7 @@ export const GET_MESSAGE = (params : object) => $.get('/api/chat/messages', para
 //停止回答
 export const POST_CHAT_STOP = (params ?: object) => $.post('/api/chat/stop', params)
 //反馈评价数值人的输出内容
-export const POST_MESSAGE_FEEDBACK = (params : { conversation_id : string, message_id : string, rating ?: "dislike" | "like", content ?: string }) => $.post(`/api/chat/conversations/${params.conversation_id}/messages/${params.message_id}/feedback`, new Object({rating:params?.rating,content:params?.content}))
+export const POST_MESSAGE_FEEDBACK = (params : { conversation_id : string, message_id : string, rating ?: "dislike" | "like", content ?: string }) => $.post(`/api/chat/conversations/${params.conversation_id}/messages/${params.message_id}/feedback`, new Object({ rating: params?.rating, content: params?.content }))
 
 
 

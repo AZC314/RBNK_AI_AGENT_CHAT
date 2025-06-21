@@ -19,7 +19,7 @@
 	import {
 		computed
 	} from 'vue'
-	import LinkManListItemView from '@/components/linkManListItemView.vue'
+	import LinkManListItemView from '@/pages/address/kit/linkManListItemView.vue'
 	import EmptyState from '@/components/EmptyState.vue'
 	import { LinkManModel } from '@/models/LinkManModel'
 

@@ -15,12 +15,13 @@
 	} from 'vue'
 	import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 	import SearchBox from '@/components/searchBox.vue'
-	import LinkManListView from '@/components/linkManListView.vue'
+	import LinkManListView from '@/pages/address/kit/linkManListView.vue'
 	import PinyinMatch from 'pinyin-match'
 	import { LinkManModel } from '@/models/LinkManModel'
 	import { GET_AVAILABLE, GET_DIGITAL_HUMANS } from '@/api/api'
 	import { Info } from '@/models/INFO'
 	import { AppStorage } from '@/stores/AppStorage'
+	import ChatMessage, { UserInfo } from '@/models/ChatMessage'
 
 	// 搜索框内容
 	const searchText = ref('')

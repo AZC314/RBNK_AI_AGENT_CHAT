@@ -3,10 +3,10 @@
 		<template v-slot:header>
 			<!-- 头像区域 -->
 			<view class="avatar-container">
-				<image v-if="linkman.avatarUrl" :src="GET_PHOTO(linkman.avatarUrl)" class="avatar" mode="aspectFill" />
-				<view v-else class="avatar-placeholder">
+				<image :src="avatar" class="avatar" mode="aspectFill" />
+				<!-- <view v-else class="avatar-placeholder">
 					{{ getFirstChar(linkman.name) }}
-				</view>
+				</view> -->
 				<!-- 在线状态指示器 -->
 				<!-- <view v-if="linkman.isOnline" class="online-indicator"></view> -->
 			</view>
@@ -29,17 +29,29 @@
 
 <script lang="ts" setup>
 	import {
-		defineProps
+		defineProps, ref
 	} from 'vue'
 	import { LinkManModel } from '@/models/LinkManModel'
 	import { GET_PHOTO } from '@/api/api'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
+	import { AppStorage } from '@/stores/AppStorage'
+	import ChatMessage, { UserInfo } from '@/models/ChatMessage'
+	import { CURRENT_ANENT_INFO } from '@/constances/constances'
+	import { useAvatarStore } from '@/stores/useAvatarStore'
+import { onMounted } from 'vue'
 
+	const avatarStore = useAvatarStore()
 	const sessionStore = useChatSessionStore()
 
 	const props = defineProps<{
 		linkman : LinkManModel
 	}>()
+	const avatar = ref('/static/default-avatar.png')
+
+	async function loadAvatar() {
+		const a = await avatarStore.getAvatarUrl(props.linkman.userId, props.linkman.avatarUrl)
+		avatar.value = a;
+	}
 
 	function getFirstChar(name : string) {
 		return name ? name.charAt(0).toUpperCase() : ''
@@ -48,17 +60,28 @@
 	const onItemClick = () => {
 		console.log('linkmanListItem onclink');
 		const agent_id = encodeURIComponent(props.linkman.userId ?? 'unKnow')
-		const agentName = encodeURIComponent(props.linkman.name)
-
 		const conversationId = () => {
 			const session = sessionStore.getSessionByAgentId(+props.linkman.userId)
 			return session ? session.conversation_id : ''
 		}
+		const currentAgentInfo : UserInfo = {
+			agentId: props.linkman.userId,
+			username: props.linkman.name,
+			face: props.linkman.avatarUrl,
+			departmentName: props.linkman.department,
+			departmentId: props.linkman.departmentId
+		}
+		AppStorage.set(CURRENT_ANENT_INFO, currentAgentInfo)
 
 		uni.navigateTo({
-			url: `/pages/chat/chat?agent_id=${agent_id}&agentName=${agentName}&conversationId=${conversationId()}`
+			url: `/pages/chat/chat?agent_id=${agent_id}&conversationId=${conversationId()}`
 		})
 	}
+	
+	onMounted(()=>{
+		loadAvatar()
+	})
+
 </script>
 
 <style scoped lang="scss">

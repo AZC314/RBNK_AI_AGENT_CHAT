@@ -2,10 +2,10 @@
 	<uni-list-item clickable>
 		<template v-slot:header>
 			<view class="avatar-container">
-				<image v-if="session.avatarUrl" :src="GET_PHOTO(session.avatarUrl)" class="avatar" mode="aspectFill" />
-				<view v-else class="avatar-placeholder">
+				<image :src="avatar" class="avatar" mode="aspectFill" />
+			<!-- 	<view v-else class="avatar-placeholder">
 					{{ getFirstChar(session.username) }}
-				</view>
+				</view> -->
 
 				<!-- <view v-if="session.unreadCount > 0" class="unread-badge">
 					<text class="unread-count">{{ formatUnreadCount(session.unreadCount) }}</text>
@@ -40,12 +40,19 @@
 	import { SessionModel } from '@/models/sessionModel'
 	import { GET_DEPARTMENTS_BY_ANGENT_ID, GET_PHOTO } from '@/api/api'
 	import { Session } from 'inspector';
+	import { useAvatarStore } from '@/stores/useAvatarStore'
 
+	const avatarStore = useAvatarStore()
 	const props = defineProps<{
 		session : SessionModel
 	}>()
 
 	const department = ref('')
+	const avatar = ref('/static/default-avatar.png')
+	
+	async function loadAvatar() {
+	  avatar.value = await avatarStore.getAvatarUrl(props.session.userId, props.session.avatarUrl)
+	}
 
 	function getFirstChar(name : string) {
 		return name ? name.charAt(0).toUpperCase() : ''
@@ -55,14 +62,6 @@
 		return count.toString()
 	}
 
-	function navigateToChat() {
-		// const id = encodeURIComponent(props.session.userId)
-		// const title = encodeURIComponent(`${props.session.department} ${props.session.username}`)
-		// url: `/pages/chat/chat?id=${id}&navbarTitle=${title}`
-		// uni.navigateTo({
-		// 	url: `/pages/chat/chat`
-		// })
-	}
 	/**
 	 * 获取用户部门信息
 	 * @param session 用户会话模型
@@ -93,6 +92,7 @@
 	}
 
 	onMounted(async () => {
+		loadAvatar()
 		const dept = await getDepartment()
 		department.value = dept
 	})

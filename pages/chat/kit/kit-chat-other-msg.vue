@@ -1,8 +1,8 @@
 <template>
 	<view class="chat-item other">
 		<view class="avatar-container">
-			<image v-if="msg.userinfo.face" class="avatar" :src="msg.userinfo.face" mode="aspectFill" />
-			<view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view>
+			<image class="avatar" :src="avatar" mode="aspectFill" />
+			<!-- <view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view> -->
 		</view>
 		<view class="message-wrapper">
 			<view class="bubble" :class="{ 'is-media': isMediaMsg }">
@@ -27,21 +27,30 @@
 </template>
 
 <script lang="ts" setup>
-	import { DateTool } from '@/tools/dateTool'
-	import KitListTextMsg from '@/components/kit-chat/elements/kit-list-text-msg.vue'
-	import KitListImgMsg from '@/components/kit-chat/elements/kit-list-img-msg.vue'
-	import KitListVoiceMsg from '@/components/kit-chat/elements/kit-list-voice-msg.vue'
-	import KitListFileMsg from '@/components/kit-chat/elements/kit-list-file-msg.vue'
-	import KitListVideoMsg from '@/components/kit-chat/elements/kit-list-video-msg.vue'
-	import KitListMarkdownMsg from '@/components/kit-chat/elements/kit-list-markdown-msg.vue'
-	import KitListChartMsg from '@/components/kit-chat/elements/kit-list-chart-msg.vue'
+	import { Ref, ref, inject, computed, onMounted } from 'vue'
+	import { POST_MESSAGE_FEEDBACK, GET_PHOTO } from '@/api/api'
+	import GeneralServices from '@/api/GeneralServices'
+	import { useAvatarStore } from '@/stores/useAvatarStore'
+	import { AppStorage } from '@/stores/AppStorage'
+	import { CURRENT_ANENT_INFO } from '@/constances/constances'
 	import { InnerMessage } from '@/models/ChatMessage'
-	import { ref, inject, computed } from 'vue'
-	import { POST_MESSAGE_FEEDBACK } from '@/api/api'
+	import { DateTool } from '@/tools/dateTool'
+	import KitListTextMsg from '@/pages/chat/kit/elements/kit-list-text-msg.vue'
+	import KitListImgMsg from '@/pages/chat/kit/elements/kit-list-img-msg.vue'
+	import KitListVoiceMsg from '@/pages/chat/kit/elements/kit-list-voice-msg.vue'
+	import KitListFileMsg from '@/pages/chat/kit/elements/kit-list-file-msg.vue'
+	import KitListVideoMsg from '@/pages/chat/kit/elements/kit-list-video-msg.vue'
+	import KitListMarkdownMsg from '@/pages/chat/kit/elements/kit-list-markdown-msg.vue'
+	import KitListChartMsg from '@/pages/chat/kit/elements/kit-list-chart-msg.vue'
 
-	const props = defineProps<{ msg : InnerMessage}>()
+
+
+
+	const avatarStore = useAvatarStore()
 	const emit = defineEmits(['click', 'like', 'dislike', 'undislike', 'unlike'])
 	const feedbackMap = inject('feedbackMap') as any
+	const props = defineProps<{ msg : InnerMessage }>()
+	const avatar : Ref<string> = ref('')
 
 	const favourActive = computed(() => {
 		const state = feedbackMap?.get(props.msg.id)
@@ -113,10 +122,13 @@
 	function getFirstChar(name : string) {
 		return name ? name.charAt(0).toUpperCase() : ''
 	}
+	onMounted(async () => {
+		avatar.value = await GeneralServices.loadAvatar(AppStorage.get(CURRENT_ANENT_INFO)?.agentId, AppStorage.get(CURRENT_ANENT_INFO)?.face)
+	})
 </script>
 
 <style lang="scss" scoped>
-	@import './chat-common.scss';
+	@import '../chat-common.scss';
 
 	.chat-item {
 		display: flex;

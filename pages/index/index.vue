@@ -1,320 +1,216 @@
 <template>
-	<view class="container">
-		<uni-card is-full :is-shadow="false">
-			<text class="uni-h6">通过滑动触发选项的容器，容器内可放置列表等组件，通过左右滑动来触发一些操作。</text>
-		</uni-card>
-		<uni-section title="基本用法" type="line"></uni-section>
-		<uni-swipe-action>
-			<uni-swipe-action-item :left-options="options2" :threshold="0" :right-options="options1" @click="bindClick">
-				<view class="content-box" @click="contentClick">
-					<text class="content-text">使用数据填充</text>
-				</view>
-			</uni-swipe-action-item>
-			<uni-swipe-action-item @click="bindClick">
-				<template v-slot:left>
-					<view class="slot-button">
-						<text class="slot-button-text"
-							@click="bindClick({position:'left',content:{text:'置顶'}})">置顶</text>
-					</view>
-				</template>
-				<view class="content-box" @click="contentClick">
-					<text class="content-text">使用左右插槽</text>
-				</view>
-				<template v-slot:right>
-					<view class="slot-button" @click="bindClick({position:'right',content:{text:'删除'}})"><text
-							class="slot-button-text">删除</text></view>
-				</template>
-			</uni-swipe-action-item>
-			<uni-swipe-action-item :right-options="options1" @click="bindClick">
-				<template v-slot:left>
-					<view class="slot-button"><text class="slot-button-text"
-							@click="bindClick({position:'left',content:{text:'置顶'}})">置顶</text></view>
-				</template>
-				<view class="content-box" @click="contentClick">
-					<text class="content-text">数据与插槽混合使用</text>
-				</view>
-			</uni-swipe-action-item>
-		</uni-swipe-action>
-		<uni-section title="禁止滑动" type="line"></uni-section>
-		<uni-swipe-action>
-			<uni-swipe-action-item :disabled="true">
-				<view class="content-box">
-					<text class="content-text">禁止左右滚动</text>
-				</view>
-			</uni-swipe-action-item>
-		</uni-swipe-action>
-		<uni-section title="使用变量控制开关" type="line"></uni-section>
-		<view class="example-body">
-			<view class="button" @click="setOpened">
-				<text class="button-text">当前状态：{{ isOpened }}</text>
+	<view class="login-container">
+		<view class="login-form">
+			<text class="title">用户登录</text>
+
+			<!-- 用户名输入 -->
+			<view class="input-group">
+				<text class="label">用户名</text>
+				<input v-model="form.username" placeholder="请输入用户名" class="input" @blur="validate('username')" />
+				<text class="error" v-if="errors.username">{{ errors.username }}</text>
 			</view>
+
+			<!-- 密码输入 -->
+			<view class="input-group">
+				<text class="label">密码</text>
+				<input v-model="form.password" placeholder="请输入密码" password class="input"
+					@blur="validate('password')" />
+				<text class="error" v-if="errors.password">{{ errors.password }}</text>
+			</view>
+
+			<!-- 登录按钮 -->
+			<button class="login-btn" :disabled="isSubmitting" @click="handleLogin">
+				{{ isSubmitting ? '登录中...' : '登录' }}
+			</button>
 		</view>
-		<uni-swipe-action>
-			<uni-swipe-action-item :left-options="options2" :right-options="options2" :show="isOpened"
-				:auto-close="false" @change="change" @click="bindClick">
-				<view class="content-box">
-					<text class="content-text">使用变量控制SwipeAction的开启状态</text>
-				</view>
-			</uni-swipe-action-item>
-		</uni-swipe-action>
-
-		<uni-section title="swipe-action 列表" type="line"></uni-section>
-		<uni-swipe-action ref="swipeAction">
-			<uni-swipe-action-item v-for="(item, index) in swipeList" :right-options="item.options" :key="item.id"
-				@change="swipeChange($event, index)" @click="swipeClick($event, index)">
-				<view class="content-box">
-					<text class="content-text">{{ item.content }}</text>
-				</view>
-			</uni-swipe-action-item>
-		</uni-swipe-action>
 	</view>
-	<view class="" @click="ItemOnclinkEvent()"> 主页</view>
 </template>
+<script setup>
+	import {
+		ref
+	} from 'vue';
+	import {
+		onLoad
+	} from '@dcloudio/uni-app';
+	import {
+		POSYT_LOGIN
+	} from '@/api/api'
+	import {
+		AppStorage
+	} from '@/stores/AppStorage';
+	import {
+		REF_TOKEN,
+		TOKEN
+	} from '@/constances/constances';
 
-<script>
-	export default {
-		components: {},
-		data() {
-			return {
-				show: false,
-				isOpened: 'none',
-				options1: [{
-					text: '取消置顶'
-				}],
-				options2: [{
-						text: '取消',
-						style: {
-							backgroundColor: '#007aff'
-						}
-					},
-					{
-						text: '确认',
-						style: {
-							backgroundColor: '#F56C6C'
-						}
-					}
-				],
-				swipeList: [{
-						options: [{
-							text: '添加',
-							style: {
-								backgroundColor: '#F56C6C'
-							}
-						}],
-						id: 0,
-						content: '左滑点击添加新增一条数据'
-					},
-					{
-						id: 1,
-						options: [{
-								text: '置顶'
-							},
-							{
-								text: '删除',
-								style: {
-									backgroundColor: 'rgb(255,58,49)'
-								}
-							}
-						],
-						content: 'item2'
-					},
-					{
-						id: 2,
-						options: [{
-								text: '置顶'
-							},
-							{
-								text: '标记为已读',
-								style: {
-									backgroundColor: 'rgb(254,156,1)'
-								}
-							},
-							{
-								text: '删除',
-								style: {
-									backgroundColor: 'rgb(255,58,49)'
-								}
-							}
-						],
-						content: 'item3'
-					}
-				]
-			};
-		},
-		onReady() {
-			// 模拟延迟赋值
-			setTimeout(() => {
-				this.isOpened = 'right';
-			}, 1000);
+	// 表单数据
+	const form = ref({
+		username: '',
+		password: ''
+	});
 
-			uni.$on('update', res => {
-				console.log(111);
-				this.swipeClick({
-					content: {
-						text: '添加'
-					}
-				})
-			})
-		},
-		methods: {
-			contentClick() {
-				console.log('点击内容');
-				uni.showToast({
-					title: '点击内容',
-					icon: 'none'
-				})
+	// 错误提示
+	const errors = ref({
+		username: '',
+		password: ''
+	});
+
+	// 提交状态
+	const isSubmitting = ref(false);
+
+	// 表单验证规则
+	const rules = {
+		username: [{
+			required: true,
+			message: '用户名不能为空'
+		}],
+		password: [{
+				required: true,
+				message: '密码不能为空'
 			},
-			bindClick(e) {
-				console.log(e);
-				uni.showToast({
-					title: `点击了${e.position === 'left' ? '左侧' : '右侧'} ${e.content.text}按钮`,
-					icon: 'none'
-				});
-			},
-			setOpened() {
-				if (this.isOpened === 'none') {
-					this.isOpened = 'left';
-					return;
-				}
-				if (this.isOpened === 'left') {
-					this.isOpened = 'right';
-					return;
-				}
-				if (this.isOpened === 'right') {
-					this.isOpened = 'none';
-					return;
-				}
-			},
-			change(e) {
-				this.isOpened = e;
-				console.log('返回：', e);
-			},
-			swipeChange(e, index) {
-				console.log('返回：', e);
-				console.log('当前索引：', index);
-			},
-			swipeClick(e, index) {
-				let {
-					content
-				} = e;
-				if (content.text === '删除') {
-					uni.showModal({
-						title: '提示',
-						content: '是否删除',
-						success: res => {
-							if (res.confirm) {
-								this.swipeList.splice(index, 1);
-							} else if (res.cancel) {
-								console.log('用户点击取消');
-							}
-						}
-					});
-				} else if (content.text === '添加') {
-					if (this.swipeList.length < 10) {
-						this.swipeList.push({
-							id: new Date().getTime(),
-							options: [{
-									text: '置顶'
-								},
-								{
-									text: '标记为已读',
-									style: {
-										backgroundColor: 'rgb(254,156,1)'
-									}
-								},
-								{
-									text: '删除',
-									style: {
-										backgroundColor: 'rgb(255,58,49)'
-									}
-								}
-							],
-							content: '新增' + new Date().getTime()
-						});
-						uni.showToast({
-							title: `添加了一条数据`,
-							icon: 'none'
-						});
-					} else {
-						uni.showToast({
-							title: `最多添加十条数据`,
-							icon: 'none'
-						});
-					}
-				} else {
-					uni.showToast({
-						title: `点击了${e.content.text}按钮`,
-						icon: 'none'
-					});
-				}
-			},
-			ItemOnclinkEvent(){
-				uni.navigateTo({
-					url: `../chat/chat`
-				})
+			{
+				minLength: 6,
+				message: '密码至少6位'
+			}
+		]
+	};
+
+	// 验证单个字段
+	const validate = (field) => {
+		const value = form.value[field];
+		const fieldRules = rules[field];
+
+		for (const rule of fieldRules) {
+			if (rule.required && !value) {
+				errors.value[field] = rule.message;
+				return false;
+			}
+			if (rule.minLength && value.length < rule.minLength) {
+				errors.value[field] = rule.message;
+				return false;
 			}
 		}
+
+		errors.value[field] = '';
+		return true;
 	};
+
+	// 提交登录
+	const handleLogin = async () => {
+		// 验证所有字段
+		const isValid = Object.keys(form.value).every(field => validate(field));
+		if (!isValid) return;
+
+		isSubmitting.value = true;
+
+		try {
+			// 模拟API请求（实际替换为你的登录接口）
+			POSYT_LOGIN(new Object({
+				username: form.value.username,
+				password: form.value.password
+			})).then(res => {
+				if (res.detail) {
+					uni.showToast({
+						title: res.detail,
+						icon: 'error'
+					});
+				} else {
+					if (res.access_token) AppStorage.set(TOKEN, res.access_token)
+					if (res.refresh_token) AppStorage.set(REF_TOKEN, res.refresh_token)
+					// 登录成功处理
+					uni.showToast({
+					  title: '登录成功',
+					  icon: 'success',
+					  duration: 1000
+					});
+					setTimeout(() => {
+					  uni.switchTab({ url: "/pages/message/message" });
+					}, 1000);
+				}
+			})
+
+
+
+		} catch (error) {
+			uni.showToast({
+				title: '登录失败',
+				icon: 'error'
+			});
+		} finally {
+			isSubmitting.value = false;
+		}
+	};
+
+	// 页面加载时自动聚焦用户名输入框（H5/App生效）
+	onLoad(() => {
+		// #ifdef H5 || APP
+		document.querySelector('.input')?.focus();
+		// #endif
+	});
 </script>
-
-
-<style lang="scss">
-	.content-box {
-		flex: 1;
-		/* #ifdef APP-NVUE */
-		justify-content: center;
-		/* #endif */
-		height: 44px;
-		line-height: 44px;
-		padding: 0 15px;
-		position: relative;
-		background-color: #fff;
-		border-bottom-color: #f5f5f5;
-		border-bottom-width: 1px;
-		border-bottom-style: solid;
-	}
-
-	.content-text {
-		font-size: 15px;
-	}
-
-	.example-body {
-		/* #ifndef APP-NVUE */
+<style scoped>
+	.login-container {
 		display: flex;
-		/* #endif */
-		flex-direction: row;
-		justify-content: center;
-		padding: 10px 0;
-		background-color: #fff;
-	}
-
-	.button {
-		border-color: #e5e5e5;
-		border-style: solid;
-		border-width: 1px;
-		padding: 4px 8px;
-		border-radius: 4px;
-	}
-
-	.button-text {
-		font-size: 15px;
-	}
-
-	.slot-button {
-		/* #ifndef APP-NVUE */
-		display: flex;
-		height: 100%;
-		/* #endif */
-		flex: 1;
-		flex-direction: row;
 		justify-content: center;
 		align-items: center;
-		padding: 0 20px;
-		background-color: #ff5a5f;
+		height: 100vh;
+		background-color: #f5f5f5;
 	}
 
-	.slot-button-text {
-		color: #ffffff;
-		font-size: 14px;
+	.login-form {
+		width: 80%;
+		padding: 40rpx;
+		background: #fff;
+		border-radius: 16rpx;
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+	}
+
+	.title {
+		font-size: 36rpx;
+		font-weight: bold;
+		text-align: center;
+		margin-bottom: 40rpx;
+		display: block;
+	}
+
+	.input-group {
+		margin-bottom: 30rpx;
+	}
+
+	.label {
+		display: block;
+		margin-bottom: 10rpx;
+		font-size: 28rpx;
+		color: #333;
+	}
+
+	.input {
+		width: 100%;
+		height: 80rpx;
+		padding: 0 20rpx;
+		border: 1rpx solid #ddd;
+		border-radius: 8rpx;
+		font-size: 28rpx;
+	}
+
+	.error {
+		color: red;
+		font-size: 24rpx;
+		margin-top: 8rpx;
+		display: block;
+	}
+
+	.login-btn {
+		margin-top: 40rpx;
+		background-color: #007aff;
+		color: white;
+		border: none;
+		height: 80rpx;
+		border-radius: 8rpx;
+		font-size: 30rpx;
+	}
+
+	.login-btn:disabled {
+		background-color: #cccccc;
 	}
 </style>

@@ -24,9 +24,9 @@
 		watch,
 		onUnmounted
 	} from 'vue'
-	import kitChatSystemMsg from '@/components/kit-chat/kit-chat-system-msg.vue'
-	import kitChatMyMsg from '@/components/kit-chat/kit-chat-my-msg.vue'
-	import kitChatOtherMsg from '@/components/kit-chat/kit-chat-other-msg.vue'
+	import kitChatSystemMsg from '@/pages/chat/kit/kit-chat-system-msg.vue'
+	import kitChatMyMsg from '@/pages/chat/kit/kit-chat-my-msg.vue'
+	import kitChatOtherMsg from '@/pages/chat/kit/kit-chat-other-msg.vue'
 	import EmptyState from '@/components/EmptyState.vue'
 	import ChatMessage, {
 		InnerMessage,

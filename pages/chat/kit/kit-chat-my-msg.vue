@@ -1,8 +1,8 @@
 <template>
 	<view class="chat-item my">
 		<view class="avatar-container">
-			<image v-if="msg.userinfo.face" class="avatar" :src="msg.userinfo.face" mode="aspectFill" />
-			<view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view>
+			<image class="avatar" :src="avatar" mode="aspectFill" />
+			<!-- <view v-else class="avatar-placeholder">{{ getFirstChar(msg.userinfo.username) }}</view> -->
 		</view>
 		<view class="message-wrapper">
 			<view class="bubble" :class="{ 'is-media': isMediaMsg }">
@@ -14,16 +14,21 @@
 </template>
 
 <script lang="ts" setup>
+	import { Ref, ref, onMounted } from 'vue'
 	import { DateTool } from '@/tools/dateTool'
-	import KitListTextMsg from '@/components/kit-chat/elements/kit-list-text-msg.vue'
-	import KitListImgMsg from '@/components/kit-chat/elements/kit-list-img-msg.vue'
-	import KitListVoiceMsg from '@/components/kit-chat/elements/kit-list-voice-msg.vue'
-	import KitListFileMsg from '@/components/kit-chat/elements/kit-list-file-msg.vue'
-	import KitListVideoMsg from '@/components/kit-chat/elements/kit-list-video-msg.vue'
+	import KitListTextMsg from '@/pages/chat/kit/elements/kit-list-text-msg.vue'
+	import KitListImgMsg from '@/pages/chat/kit/elements/kit-list-img-msg.vue'
+	import KitListVoiceMsg from '@/pages/chat/kit/elements/kit-list-voice-msg.vue'
+	import KitListFileMsg from '@/pages/chat/kit/elements/kit-list-file-msg.vue'
+	import KitListVideoMsg from '@/pages/chat/kit/elements/kit-list-video-msg.vue'
 	import { InnerMessage } from '@/models/ChatMessage'
+	import { GET_PHOTO } from '@/api/api'
+	import { useAvatarStore } from '@/stores/useAvatarStore'
+	import GeneralServices from '@/api/GeneralServices'
 
+	const avatarStore = useAvatarStore()
 	const props = defineProps<{ msg : InnerMessage }>()
-
+	const avatar : Ref<string> = ref('')
 	function resolveComponent() {
 		const { type, content } = props.msg
 		if (type === 'img' && content.url) return KitListImgMsg
@@ -43,6 +48,10 @@
 	function getFirstChar(name : string) {
 		return name ? name.charAt(0).toUpperCase() : ''
 	}
+
+	onMounted(async() => {
+		avatar.value = await GeneralServices.loadAvatar('USER', props!.msg!.userinfo!.face!)
+	})
 </script>
 
 <style lang="scss" scoped>

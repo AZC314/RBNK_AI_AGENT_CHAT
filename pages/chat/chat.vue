@@ -1,20 +1,25 @@
 <template>
 	<view class="chat-container">
-		<uni-nav-bar :fixed="true" color="#091020" background-color="#FFF" :border="false" left-icon="left"
-			:left-text="chatTitle" leftWidth='380px' @clickLeft="back">
-			<!-- left-icon="left" @clickLeft="back" chatTitle-->
-			<!-- <block v-slot:left>
-				<view class="leftcontext">
-					<uni-icons type="back" color="#091020" size="18" />
-					<view>
-						<text class="uni-nav-bar-text">{{ chatTitle }}</text>
+		<uni-nav-bar :fixed="true" color="#091020" background-color="#fff" :border="false" height="60px"
+			left-width="100%">
+			<template #left>
+				<view class="nav-left-group">
+					<view class="back-btn-bg" @click="back">
+						<image src="/static/icons/back.png" class="back-btn-img" />
 					</view>
-
-				</view> -->
-			<!-- </block> -->
+					<view class="avatar-box">
+						<view class="avatar-wrap">
+							<image :src="avatar" class="avatar-img" mode="aspectFill" />
+						</view>
+					</view>
+					<view class="user-info">
+						<view class="user-name">{{ AppStorage.get(CURRENT_ANENT_INFO).username }}</view>
+						<view class="user-desc">{{ AppStorage.get(CURRENT_ANENT_INFO).departmentName }}</view>
+					</view>
+				</view>
+			</template>
 		</uni-nav-bar>
 		<view class="chat-content">
-			<!-- <chat-message-list :msgList="msgList" :currentUID="myUid" @refresh="onRefresh" />-->
 			<chat-message-list :msgList="msgList" @refresh="onRefresh" @feedback="onFeedback" @like="onLike"
 				@dislike="onDislike" @undislike="onUndislike" @unlike="onUnlike" />
 		</view>
@@ -48,27 +53,29 @@
 		onMounted, onBeforeUnmount, watch, provide, reactive
 	} from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
-	import chatMessageList from '@/components/kit-chat/chat-message-list.vue'
-	import ChatInput from '@/components/kit-chat/chatInput.vue'
+	import chatMessageList from '@/pages/chat/kit/chat-message-list.vue'
+	import ChatInput from '@/pages/chat/kit/chatInput.vue'
 	import ChatMessage, { InnerMessage, MessageContent, UserInfo } from '@/models/ChatMessage'
-	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_MESSAGE, POST_CHAT_COMPLETIONS, POST_CHAT_STOP, POST_MESSAGE_FEEDBACK } from '@/api/api'
+	import { GET_PHOTO, DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_MESSAGE, POST_CHAT_COMPLETIONS, POST_CHAT_STOP, POST_MESSAGE_FEEDBACK } from '@/api/api'
 	import { Info } from '@/models/INFO'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 	import { useMessageStore } from '@/stores/useMessageStore'
 	import { SessionModel } from '@/models/sessionModel'
 	import { AppStorage } from '@/stores/AppStorage'
 	import { CONVERSATIONID, CURRENT_ANENT_INFO } from '@/constances/constances'
-	import { options } from 'marked'
+	import { useAvatarStore } from '@/stores/useAvatarStore'
 
 	// 声明全局类型
 	declare const uni : any
 	declare const getCurrentPages : () => any[]
 	const sessionStore = useChatSessionStore()
 	const messageStore = useMessageStore()
+	const avatarStore = useAvatarStore()
 
 	let chatId = ''
 	const chatTitle : Ref<string> = ref('')
 	let conversationId = ''
+	const avatar : Ref<string> = ref('')
 	// const myUid : Ref<string> = ref('1')
 	const playMsgid : Ref<string> = ref('2')
 	const msgList : Ref<ChatMessage[]> = ref([])
@@ -141,6 +148,9 @@
 			console.log('GET_MESSAGE fail ' + JSON.stringify(err));
 		}
 	}
+	async function loadAvatar() {
+		avatar.value = await avatarStore.getAvatarUrl(AppStorage.get(CURRENT_ANENT_INFO).agentId, AppStorage.get(CURRENT_ANENT_INFO).face);
+	}
 
 	onLoad((options) => {
 		if (options?.agent_id) {
@@ -151,133 +161,14 @@
 		}
 		const info = AppStorage.get(CURRENT_ANENT_INFO) as UserInfo
 		chatTitle.value = info.username!;
-		
-		
+
+
 	})
 	// H5 页面初始化（通过 getCurrentPages 获取传参）
 	onMounted(() => {
 		messageId = String(Date.now() * Math.random() | 0)
+		loadAvatar()
 		init();
-
-
-
-		// msgList.value.push(
-		// 	// markdown
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1001',
-		// 			type: 'markdown',
-		// 			content: {
-		// 				text: '# Markdown 测试\n**粗体**\n- 项1\n- 项2\n[官网](https://uniapp.dcloud.io)'
-		// 			},
-		// 			userinfo: {
-		// 				uid: '2',
-		// 				username: '对方',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 10
-		// 		}
-		// 	}),
-		// 	// chart（option方式）
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1002',
-		// 			type: 'chart',
-		// 			content: {
-		// 				option: {
-		// 					title: { text: '近7天访问量' },
-		// 					tooltip: {},
-		// 					xAxis: { data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
-		// 					yAxis: {},
-		// 					series: [{ type: 'line', data: [120, 132, 101, 134, 90, 230, 210] }]
-		// 				}
-		// 			},
-		// 			userinfo: {
-		// 				uid: '2',
-		// 				username: '对方',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 9
-		// 		}
-		// 	}),
-		// 	// img
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1003',
-		// 			type: 'img',
-		// 			content: {
-		// 				url: '/static/female-model-9565629_1280.jpg',
-		// 				w: 300,
-		// 				h: 200
-		// 			},
-		// 			userinfo: {
-		// 				uid: '1',
-		// 				username: '我',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 8
-		// 		}
-		// 	}),
-		// 	// file
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1004',
-		// 			type: 'file',
-		// 			content: {
-		// 				fileName: '测试文档.docx',
-		// 				fileSize: 204800,
-		// 				fileUrl: '/static/test.pdf'
-		// 			},
-		// 			userinfo: {
-		// 				uid: '2',
-		// 				username: '对方',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 7
-		// 		}
-		// 	}),
-		// 	// voice
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1005',
-		// 			type: 'voice',
-		// 			content: {
-		// 				voiceUrl: '/static/voice.mp3',
-		// 				duration: 5
-		// 			},
-		// 			userinfo: {
-		// 				uid: '1',
-		// 				username: '我',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 6
-		// 		}
-		// 	}),
-		// 	// video
-		// 	new ChatMessage({
-		// 		type: 'user',
-		// 		msg: {
-		// 			id: 'msg_1006',
-		// 			type: 'video',
-		// 			content: {
-		// 				videoUrl: '/static/video.mp4',
-		// 				coverImage: '/static/图1.jfif',
-		// 				duration: 60
-		// 			},
-		// 			userinfo: {
-		// 				uid: '2',
-		// 				username: '对方',
-		// 				face: '/static/logo.png'
-		// 			},
-		// 			time: Date.now() - 1000 * 60 * 5
-		// 		}
-		// 	})
-		// )
 	})
 	onBeforeUnmount(() => {
 		AppStorage.delete(CONVERSATIONID)
@@ -451,114 +342,31 @@
 	const onRefresh = async () => {
 		if (isRefreshing.value) return
 		isRefreshing.value = true
-
 		try {
-			// 模拟加载新消息
-			await new Promise(resolve => setTimeout(resolve, 1000))
-
-			// 添加新消息到列表开头
-			const newMessages = [
-				// 自己文本
-				new ChatMessage({
-					type: 'user',
-					msg: {
-						id: 'msg_2',
-						type: 'text',
-						userinfo: {
-							uid: '1',
-							username: '我',
-							face: '/static/logo.png'
-						},
-						content: { text: '我想了解你们的产品细节。' },
-						time: new Date(Date.now() - 1000 * 60 * 60 * 1.8),
-						conversation_id: conversationId
-					}
-				})
-				,
-				// 对方图片
-				new ChatMessage({
-					type: 'user',
-					msg: {
-						id: 'msg_3',
-						type: 'img',
-						userinfo: {
-							uid: '2',
-							username: '对方',
-							face: '/static/logo.png'
-						},
-						content: {
-							url: '/static/female-model-9565629_1280.jpg',
-							w: 200,
-							h: 200
-						},
-						time: new Date(Date.now() - 1000 * 60 * 60 * 1.7),
-						conversation_id: conversationId
-					}
-				}),
-				// 自己图片
-				new ChatMessage({
-					type: 'user',
-					msg: {
-						id: 'msg_4',
-						type: 'img',
-						userinfo: {
-							uid: '1',
-							username: '我',
-							face: '/static/logo.png'
-						},
-						content: {
-							url: '/static/female-model-9565629_1280.jpg',
-							w: 180,
-							h: 180,
-						},
-						time: new Date(Date.now() - 1000 * 60 * 60 * 1.6),
-						conversation_id: conversationId
-					}
-				}),
-				// 对方语音
-				new ChatMessage({
-					type: 'user',
-					msg: {
-						id: 'msg_5',
-						type: 'voice',
-						userinfo: {
-							uid: '2',
-							username: '对方',
-							face: '/static/logo.png'
-						},
-						content: { voiceUrl: '/static/voice.mp3', duration: 6 },
-						time: new Date(Date.now() - 1000 * 60 * 60 * 1.5),
-						conversation_id: conversationId
-					}
-				}),
-				// 自己语音
-				new ChatMessage({
-					type: 'user',
-					msg: {
-						id: 'msg_6',
-						type: 'voice',
-						userinfo: {
-							uid: '1',
-							username: '我',
-							face: '/static/logo.png'
-						},
-						content: { voiceUrl: '/static/voice.mp3', duration: 4 },
-						time: new Date(Date.now() - 1000 * 60 * 60 * 1.4),
-						conversation_id: conversationId
-					}
-				})
-			].sort((a, b) => Math.random() - 0.5)
-
-			msgList.value = [...newMessages, ...msgList.value]
-
+			// 获取当前会话的消息列表
+			const currentMessages = messageStore.getMessages(chatId) || []
+			const firstMsg = currentMessages[0]
+			const first_id = firstMsg ? firstMsg.message_id || firstMsg.id : undefined
+			const params: any = {
+				conversation_id: conversationId,
+				limit: 10
+			}
+			if (first_id) params.first_id = first_id
+			const res = await GET_MESSAGE(params)
+			const data = res as Info.message[]
+			if (!data || data.length === 0 || data.length < 10) {
+				uni.showToast({ title: '已加载全部历史消息', icon: 'none' })
+			}
+			// 将新消息插入messageStore头部
+			if (data && data.length > 0) {
+				// 头部插入
+				messageStore.unshiftAddMessage(chatId, data)
+				// 更新UI
+				msgList.value = [...data.map(msg => ChatMessage.ChatHistory2ChatMessage(msg, 'text', { agentId: chatId, username: chatTitle.value })).flat(), ...msgList.value]
+			}
 		} catch (error) {
-
-			console.error('刷新失败:', error)
-			uni.showToast({
-				title: '刷新失败',
-				icon: 'error',
-				duration: 1500
-			})
+			console.error('历史消息加载失败:', error)
+			uni.showToast({ title: '历史消息加载失败', icon: 'error', duration: 1500 })
 		} finally {
 			isRefreshing.value = false
 		}
@@ -869,5 +677,74 @@
 		margin-top: auto;
 		margin-bottom: 24rpx;
 		font-weight: 600;
+	}
+
+	.avatar-wrap {
+		display: flex;
+		align-items: center;
+		margin-left: 8px;
+	}
+
+	.avatar-img {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+		background: #388bff;
+	}
+
+	.avatar-circle {
+		width: 40px;
+		height: 40px;
+		background: #388bff;
+		color: #fff;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 22px;
+		font-weight: bold;
+	}
+
+	.user-info {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		margin-left: 8px;
+	}
+
+	.user-name {
+		font-size: 16px;
+		font-weight: bold;
+		color: #222;
+	}
+
+	.user-desc {
+		font-size: 13px;
+		color: #999;
+		margin-top: 2px;
+	}
+
+	.nav-left-group {
+		display: flex;
+		align-items: center;
+	}
+
+	.back-btn-bg {
+		width: 32px;
+		height: 32px;
+		background: #f7f8f9;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 12rpx;
+		margin-left: 4rpx;
+		cursor: pointer;
+	}
+
+	.back-btn-img {
+		width: 18px;
+		height: 18px;
 	}
 </style>
