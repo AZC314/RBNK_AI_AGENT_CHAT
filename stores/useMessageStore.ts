@@ -55,8 +55,31 @@ export const useMessageStore = defineStore('message', {
             if (!this.messagesMap[key]) {
                 this.messagesMap[key] = []
             }
-            this.messagesMap[key].unshift(...message as Info.message[])
-            await addMessageToDB(message)
+            
+            try {
+                console.log('unshiftAddMessage input:', message, 'type:', typeof message, 'isArray:', Array.isArray(message))
+                
+                // 判断message是数组还是单个对象
+                if (Array.isArray(message) && message.length > 0) {
+                    // 使用更安全的方式添加数组元素
+                    for (let i = message.length - 1; i >= 0; i--) {
+                        this.messagesMap[key].unshift(message[i])
+                    }
+                    // 遍历数组，为每个消息单独调用addMessageToDB
+                    for (const msg of message) {
+                        await addMessageToDB(msg)
+                    }
+                } else if (message && typeof message === 'object') {
+                    // 单个消息对象
+                    this.messagesMap[key].unshift(message)
+                    await addMessageToDB(message)
+                } else {
+                    console.error('unshiftAddMessage: message is not a valid object or array', message)
+                }
+            } catch (error) {
+                console.error('unshiftAddMessage error:', error, message)
+            }
+            
             this.saveToStorage()
         },
 
