@@ -1,7 +1,8 @@
 <template>
 	<scroll-view class="chat-message-list" scroll-y="true" :scroll-top="scrollTop" @scrolltoupper="loadMoreMessages"
-		@scroll="onScroll" refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="onRefresh">
+		@scroll="onScroll" upper-threshold= "65">
 		<view class="message-container">
+			<uni-load-more v-if="isRefreshing" :status="loadMoreStatus" :content-text="loadMoreContentText"/>
 			<template v-for="msg in msgList" :key="msg.msg.id" ><!-- v-if="msgList && msgList.length > 0" -->
 				<!-- 系统消息 -->
 				<kit-chat-system-msg v-if="msg.type === 'system'" :msg="msg.msg" />
@@ -11,7 +12,6 @@
 				<!-- 对方发送的消息 -->
 				<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" @like="handleLike" @dislike="handleDislike" @undislike="handleUndislike" @unlike="handleUnlike" />
 			</template>
-			<!-- <EmptyState v-else :showImage="false" message="空" bgc="#fff" /> -->
 		</view>
 	</scroll-view>
 </template>
@@ -22,12 +22,12 @@
 		onMounted,
 		ref,
 		watch,
-		onUnmounted
+		onUnmounted,
+		nextTick
 	} from 'vue'
 	import kitChatSystemMsg from '@/pages/chat/kit/kit-chat-system-msg.vue'
 	import kitChatMyMsg from '@/pages/chat/kit/kit-chat-my-msg.vue'
 	import kitChatOtherMsg from '@/pages/chat/kit/kit-chat-other-msg.vue'
-	import EmptyState from '@/components/EmptyState.vue'
 	import ChatMessage, {
 		InnerMessage,
 		MessageContent,
@@ -36,24 +36,29 @@
 	import { AppStorage } from '@/stores/AppStorage'
 	import { Info } from '@/models/INFO'
 
+	// 组件props定义
 	const props = defineProps<{
-		msgList : ChatMessage[]
-		// currentUID : string
+		msgList : ChatMessage[], // 消息列表
+		loadMoreStatus: string, // uni-load-more状态
+		isRefreshing: boolean, // 是否顶部加载中
+		loadMoreContentText: any, // uni-load-more文案
+		scrollTo?: string // 'top' | 'bottom'，控制滚动定位
 	}>()
 
+	// 组件事件定义
 	const emit = defineEmits(['load-more', 'refresh', 'feedback', 'like', 'dislike', 'undislike', 'unlike'])
 
+	// scrollTop为scroll-view定位值，仅内部响应式变量
 	const scrollTop = ref(0)
-	const oldScrollTop = ref(0)
-	const isRefreshing = ref(false)
-	const shouldScrollToBottom = ref(true)
+	// 记录上次滚动位置，仅本地用
+	const oldScrollTop = ref(0) // 未被外部用到
 
+	// 当前用户信息
 	const myInfo = AppStorage.get('userInfo') as Info.User;
-
 
 	// 监听消息列表变化，自动滚动到底部
 	watch(() => props.msgList, (newVal) => {
-		if (newVal.length > 0 && shouldScrollToBottom.value) {
+		if (newVal.length > 0) {
 			setTimeout(() => {
 				const query = uni.createSelectorQuery()
 				query.select('.message-container').boundingClientRect()
@@ -66,38 +71,45 @@
 		}
 	}, { deep: true })
 
-	// 加载更多消息
+	// 监听scrollTo变化，控制scroll-view定位
+	watch(() => props.scrollTo, async (val) => {
+		await nextTick()
+		if (val === 'top') {
+			scrollTop.value = 0
+		} else if (val === 'bottom') {
+			scrollTop.value = 999999
+		}
+	})
+
+	/**
+	 * 触发顶部加载更多
+	 */
 	const loadMoreMessages = () => {
-		// 触发加载更多消息的事件
 		emit('load-more')
 	}
 
 	// 下拉刷新处理
 	const onRefresh = async () => {
-		isRefreshing.value = true
-		shouldScrollToBottom.value = false
 		try {
 			emit('refresh')
 			// 刷新完成后，将消息列表定位到顶部
 			scrollTop.value = 0
 		} catch (error) {
 			console.error('刷新失败:', error)
-		} finally {
-			setTimeout(() => {
-				isRefreshing.value = false
-				shouldScrollToBottom.value = true
-			}, 1000)
 		}
 	}
 
-	// 监听滚动事件
+	/**
+	 * 监听滚动事件，记录滚动位置
+	 */
 	const onScroll = (e : any) => {
 		oldScrollTop.value = e.detail.scrollTop
 	}
 
-	// 语音播放互斥
+	// 语音播放互斥相关变量
 	let audioContext : any = null
 	let playingVoice = ''
+	// 组件卸载时停止语音播放
 	onUnmounted(() => {
 		if (audioContext) {
 			audioContext.stop()
@@ -105,7 +117,9 @@
 		}
 	})
 
-	// 统一消息点击事件处理
+	/**
+	 * 统一处理消息点击（图片、语音、文件、视频等）
+	 */
 	const handleMessageClick = (type : string, content : any) => {
 		switch (type) {
 			case 'img':
@@ -144,22 +158,21 @@
 		}
 	}
 
+	/**
+	 * 消息反馈相关事件
+	 */
 	function handleFeedback(msg) {
 		emit('feedback', msg)
 	}
-
 	function handleLike(msg) {
 		emit('like', msg)
 	}
-
 	function handleDislike(msg) {
 		emit('dislike', msg)
 	}
-
 	function handleUndislike(msg) {
 		emit('undislike', msg)
 	}
-
 	function handleUnlike(msg) {
 		emit('unlike', msg)
 	}

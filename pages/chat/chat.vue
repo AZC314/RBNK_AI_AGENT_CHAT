@@ -1,94 +1,132 @@
 <template>
 	<view class="chat-container">
-		<uni-nav-bar :fixed="true" color="#091020" background-color="#fff" :border="false" height="60px"
-			left-width="100%">
-			<template #left>
-				<view class="nav-left-group">
-					<view class="back-btn-bg" @click="back">
-						<image src="/static/icons/back.png" class="back-btn-img" />
-					</view>
-					<view class="avatar-box">
-						<view class="avatar-wrap">
-							<image :src="avatar" class="avatar-img" mode="aspectFill" />
-						</view>
-					</view>
-					<view class="user-info">
-						<view class="user-name">{{ AppStorage.get(CURRENT_ANENT_INFO).username }}</view>
-						<view class="user-desc">{{ AppStorage.get(CURRENT_ANENT_INFO).departmentName }}</view>
-					</view>
-				</view>
-			</template>
-		</uni-nav-bar>
 		<view class="chat-content">
-			<chat-message-list :msgList="msgList" @refresh="onRefresh" @feedback="onFeedback" @like="onLike"
-				@dislike="onDislike" @undislike="onUndislike" @unlike="onUnlike" />
-		</view>
-		<uni-popup ref="popupRef" type="bottom" @close="closePopup" @maskClick="closePopup">
-			<view class="feedback-popup-content">
-				<view class="popup-header">
-					<text class="popup-title">反馈</text>
-					<text class="popup-close" @click="closePopup">×</text>
+			<z-paging
+				ref="zPagingRef"
+				v-model="msgList"
+				@query="loadMoreMessages"
+				@refresh="onRefresh"
+				:auto="false"
+				:auto-show-back-to-top="false"
+				:to-top-disabled="true"
+				:show-loading-more-when-no-more="true"
+				:refresher-enabled="true"
+				:refresher-threshold="80"
+				:refresher-default-style="'black'"
+				:refresher-background="'#f5f5f5'"
+				:loading-more-enabled="false"
+				:empty-view-text="'暂无消息'"
+				:empty-view-img="''"
+				:auto-scroll-to-top-when-reload="false"
+				:auto-hide-loading-after-first-loaded="true"
+				:show-refresher-update-time="false"
+				:refresher-update-time-key="'chat'"
+				:refresher-complete-delay="200"
+				:refresher-complete-duration="300"
+				:refresher-end-bounce-enabled="true"
+				:refresher-fps="40"
+				:refresher-pull-rate="0.75"
+				:refresher-out-rate="0.65"
+				:chat-mode="true"
+			>
+				<template #top>
+					<uni-nav-bar :fixed="true" color="#091020" background-color="#fff" :border="false" height="60px"
+						left-width="100%">
+						<template #left>
+							<view class="nav-left-group">
+								<view class="back-btn-bg" @click="back">
+									<image src="/static/icons/back.png" class="back-btn-img" />
+								</view>
+								<view class="avatar-box">
+									<view class="avatar-wrap">
+										<image :src="avatar" class="avatar-img" mode="aspectFill" />
+									</view>
+								</view>
+								<view class="user-info">
+									<view class="user-name">{{ AppStorage.get(CURRENT_ANENT_INFO).username }}</view>
+									<view class="user-desc">{{ AppStorage.get(CURRENT_ANENT_INFO).departmentName }}</view>
+								</view>
+							</view>
+						</template>
+					</uni-nav-bar>
+				</template>
+				
+				<!-- 消息列表 -->
+				<view v-for="msg in msgList" :key="msg.msg.id">
+					<kit-chat-system-msg v-if="msg.type === 'system'" :msg="msg.msg" />
+					<kit-chat-my-msg v-else-if="msg.type === 'user' && msg.isSelf(myInfo.id ?? '000')" :msg="msg.msg" @favour_clinck="handleMessageClick" />
+					<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" @like="handleLike" @dislike="handleDislike" @undislike="handleUndislike" @unlike="handleUnlike" />
 				</view>
-				<view class="popup-tags">
-					<view v-for="(tag, idx) in feedbackTags" :key="tag"
-						:class="['popup-tag', selectedTag === idx ? 'active' : '']" @click="selectTag(idx)">{{ tag }}
+			<template #bottom >
+				<uni-popup ref="popupRef" type="bottom" @close="closePopup" @maskClick="closePopup">
+					<view class="feedback-popup-content">
+						<view class="popup-header">
+							<text class="popup-title">反馈</text>
+							<text class="popup-close" @click="closePopup">×</text>
+						</view>
+						<view class="popup-tags">
+							<view v-for="(tag, idx) in feedbackTags" :key="tag"
+								:class="['popup-tag', selectedTag === idx ? 'active' : '']" @click="selectTag(idx)">{{ tag }}
+							</view>
+						</view>
+						<view class="popup-textarea-wrapper">
+							<textarea v-model="feedbackText" class="popup-textarea" :placeholder="textareaPlaceholder"
+								auto-height />
+						</view>
+						<button class="popup-submit" @click="submitFeedback">提交</button>
 					</view>
-				</view>
-				<view class="popup-textarea-wrapper">
-					<textarea v-model="feedbackText" class="popup-textarea" :placeholder="textareaPlaceholder"
-						auto-height />
-				</view>
-				<button class="popup-submit" @click="submitFeedback">提交</button>
-			</view>
-		</uni-popup>
-		<chat-input v-if="!popupVisible" @send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
-			@image-upload="handleImageUpload" @attachment-upload="handleAttachmentUpload"
-			@voice-record="handleVoiceRecord" @toggle-settings="handleToggleSettings" @clear="handleClear" />
+				</uni-popup>
+				<chat-input v-if="!popupVisible" @send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
+					@image-upload="handleImageUpload" @attachment-upload="handleAttachmentUpload"
+					@voice-record="handleVoiceRecord" @toggle-settings="handleToggleSettings" @clear="handleClear" />
+			</template>
+			</z-paging>
+		</view>
 	</view>
 </template>
 
 <script lang="ts" setup>
+	// ====== 依赖与工具 ======
 	import {
 		Ref, ref,
-		onMounted, onBeforeUnmount, watch, provide, reactive
+		onMounted, onBeforeUnmount, watch, provide, reactive, nextTick
 	} from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
-	import chatMessageList from '@/pages/chat/kit/chat-message-list.vue'
 	import ChatInput from '@/pages/chat/kit/chatInput.vue'
 	import ChatMessage, { InnerMessage, MessageContent, UserInfo } from '@/models/ChatMessage'
 	import { GET_PHOTO, DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_MESSAGE, POST_CHAT_COMPLETIONS, POST_CHAT_STOP, POST_MESSAGE_FEEDBACK } from '@/api/api'
 	import { Info } from '@/models/INFO'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 	import { useMessageStore } from '@/stores/useMessageStore'
-	import { SessionModel } from '@/models/sessionModel'
 	import { AppStorage } from '@/stores/AppStorage'
 	import { CONVERSATIONID, CURRENT_ANENT_INFO } from '@/constances/constances'
 	import { useAvatarStore } from '@/stores/useAvatarStore'
+	import kitChatSystemMsg from '@/pages/chat/kit/kit-chat-system-msg.vue'
+	import kitChatMyMsg from '@/pages/chat/kit/kit-chat-my-msg.vue'
+	import kitChatOtherMsg from '@/pages/chat/kit/kit-chat-other-msg.vue'
 
 	// 声明全局类型
 	declare const uni : any
-	declare const getCurrentPages : () => any[]
 	const sessionStore = useChatSessionStore()
 	const messageStore = useMessageStore()
 	const avatarStore = useAvatarStore()
 
-	let chatId = ''
-	const chatTitle : Ref<string> = ref('')
-	let conversationId = ''
-	const avatar : Ref<string> = ref('')
-	// const myUid : Ref<string> = ref('1')
-	const playMsgid : Ref<string> = ref('2')
-	const msgList : Ref<ChatMessage[]> = ref([])
-	const scrollTop : Ref<number> = ref(0)
-	const scrollToView : Ref<string> = ref('')
-	const loading : Ref<boolean> = ref(false)
-	const isRefreshing : Ref<boolean> = ref(false)
-	const canStopChat : Ref<boolean> = ref(false)
+	// ====== 业务核心变量 ======
+	let chatId = '' // 当前会话ID
+	const chatTitle : Ref<string> = ref('') // 当前会话标题
+	let conversationId = '' // 当前会话的conversationId
+	const avatar : Ref<string> = ref('') // 当前会话头像
+	const msgList : Ref<ChatMessage[]> = ref([]) // 聊天消息列表
+	const scrollTo : Ref<string> = ref('bottom') // 控制消息区滚动定位（'top'/'bottom'）
+	const canStopChat : Ref<boolean> = ref(false) // 是否可中断流式回复
 	//流式回答的内容当前消息编号
 	let messageId = ''
 	let taskId = ''
+	// 音频播放相关
+	let audioContext : any = null
+	let playingVoice = ''
 
-	// 添加类型定义
+	// ====== 类型定义 ======
 	interface ChatResponse {
 		items : any[];
 		[key : string] : any;
@@ -103,11 +141,16 @@
 		conversation_id : string;
 	}
 
-	// 返回按钮
+	/**
+	 * 返回按钮，返回上一页
+	 */
 	function back() {
 		uni.navigateBack()
 	}
 
+	/**
+	 * 初始化加载本地和远程消息
+	 */
 	async function init() {
 		try {
 			// 先加载本地数据
@@ -126,6 +169,13 @@
 				// 如果最后更新时间在1分钟内，直接使用本地数据
 				if (currentTime - lastUpdateTime <= 60 * 1000) {
 					handleMsgList(localMessages);
+					// 滚动到底部显示最新消息
+					await nextTick()
+					setTimeout(() => {
+						if (zPagingRef.value) {
+							zPagingRef.value.scrollToBottom()
+						}
+					}, 100)
 					return;
 				}
 			}
@@ -143,15 +193,28 @@
 				await messageStore.deleteMessages(chatId);
 				data.map(elem => messageStore.addMessage(chatId, elem));
 				handleMsgList(data);
+				
+				// 滚动到底部显示最新消息
+				await nextTick()
+				setTimeout(() => {
+					if (zPagingRef.value) {
+						zPagingRef.value.scrollToBottom()
+					}
+				}, 100)
 			}
 		} catch (err) {
 			console.log('GET_MESSAGE fail ' + JSON.stringify(err));
 		}
 	}
+
+	/**
+	 * 加载头像
+	 */
 	async function loadAvatar() {
 		avatar.value = await avatarStore.getAvatarUrl(AppStorage.get(CURRENT_ANENT_INFO).agentId, AppStorage.get(CURRENT_ANENT_INFO).face);
 	}
 
+	// 页面参数初始化
 	onLoad((options) => {
 		if (options?.agent_id) {
 			chatId = decodeURIComponent(options.agent_id)
@@ -161,29 +224,75 @@
 		}
 		const info = AppStorage.get(CURRENT_ANENT_INFO) as UserInfo
 		chatTitle.value = info.username!;
-
-
+		
+		// 初始化消息并滚动到底部
+		init()
 	})
-	// H5 页面初始化（通过 getCurrentPages 获取传参）
-	onMounted(() => {
+
+	// 页面挂载时初始化
+	onMounted(async () => {
 		messageId = String(Date.now() * Math.random() | 0)
-		loadAvatar()
-		init();
+		await loadAvatar()
+		
+		// 等待init完成，然后通知z-paging
+		let retryCount = 0
+		const maxRetries = 50 // 最多等待5秒
+		
+		const checkInitComplete = () => {
+			if (msgList.value.length > 0) {
+				// init已完成，通知z-paging
+				nextTick(() => {
+					if (zPagingRef.value) {
+						zPagingRef.value.complete(msgList.value)
+						zPagingRef.value.scrollToBottom()
+					}
+				})
+			} else if (retryCount < maxRetries) {
+				// 继续等待
+				retryCount++
+				setTimeout(checkInitComplete, 100)
+			} else {
+				// 超时，通知z-paging当前状态
+				console.warn('初始化超时，使用当前状态')
+				nextTick(() => {
+					if (zPagingRef.value) {
+						zPagingRef.value.complete(msgList.value)
+					}
+				})
+			}
+		}
+		
+		// 开始检查
+		setTimeout(checkInitComplete, 100)
 	})
+
+	// 页面卸载时清理本地存储
 	onBeforeUnmount(() => {
 		AppStorage.delete(CONVERSATIONID)
 		AppStorage.delete('textIDList')
+		// 清理音频上下文
+		if (audioContext) {
+			audioContext.stop()
+			audioContext.destroy()
+			audioContext = null
+		}
+		playingVoice = ''
 	})
 
+	/**
+	 * 格式化并插入消息到msgList
+	 */
 	function handleMsgList(pramas : Info.message[]) {
-		/* todo 对方信息 */
 		pramas.map(elem => {
 			const format = ChatMessage.ChatHistory2ChatMessage(elem, 'text', { agentId: chatId, username: chatTitle.value })
 			msgList.value.push(...format)
 		})
 	}
 
-
+	/**
+	 * 发送消息
+	 * @param message 用户输入的消息内容
+	 */
 	const handleSend = async (message : string) => {
 		try {
 			const myInfo = AppStorage.get('userInfo') as Info.User;
@@ -223,11 +332,11 @@
 				params['conversation_id'] = conversationId;
 			}
 
+			// 流式回复相关回调
 			const getWorkflowInfo = (params : Record<string, string>) => {
 				console.log('POST_CHAT_COMPLETIONS getWorkflowInfo', params);
 				taskId = params['task_id'];
 				conversationId = params['conversation_id']
-				// created_at = params['created_at']
 			}
 
 			const onChar = (char : string, msgId : string) => {
@@ -327,7 +436,7 @@
 	// 播放语音
 	function playVoice(msg : { id : string }) {
 		console.log('播放语音', msg)
-		playMsgid.value = msg.id
+		messageId = msg.id
 	}
 
 	// 显示图片
@@ -340,35 +449,42 @@
 
 	// 下拉刷新处理函数
 	const onRefresh = async () => {
-		if (isRefreshing.value) return
-		isRefreshing.value = true
 		try {
+			// 如果没有conversationId，说明是新会话，直接完成刷新
+			if (!conversationId) {
+				zPagingRef.value.complete(msgList.value)
+				return
+			}
+
 			// 获取当前会话的消息列表
 			const currentMessages = messageStore.getMessages(chatId) || []
 			const firstMsg = currentMessages[0]
 			const first_id = firstMsg ? firstMsg.message_id || firstMsg.id : undefined
-			const params: any = {
+			
+			const params : any = {
 				conversation_id: conversationId,
 				limit: 10
 			}
 			if (first_id) params.first_id = first_id
+			
 			const res = await GET_MESSAGE(params)
 			const data = res as Info.message[]
-			if (!data || data.length === 0 || data.length < 10) {
-				uni.showToast({ title: '已加载全部历史消息', icon: 'none' })
-			}
-			// 将新消息插入messageStore头部
+			
 			if (data && data.length > 0) {
-				// 头部插入
-				messageStore.unshiftAddMessage(chatId, data)
-				// 更新UI
-				msgList.value = [...data.map(msg => ChatMessage.ChatHistory2ChatMessage(msg, 'text', { agentId: chatId, username: chatTitle.value })).flat(), ...msgList.value]
+				// 有新数据，添加到列表前面
+				await messageStore.unshiftAddMessage(chatId, data)
+				const newMessages = data.map(msg => ChatMessage.ChatHistory2ChatMessage(msg, 'text', { agentId: chatId, username: chatTitle.value })).flat()
+				msgList.value = [...newMessages, ...msgList.value]
+				// 告知z-paging下拉刷新结束，传入完整的消息列表
+				zPagingRef.value.complete(msgList.value)
+			} else {
+				// 没有更多历史数据，标记为没有更多数据
+				zPagingRef.value.complete(msgList.value, 'noMore')
 			}
 		} catch (error) {
-			console.error('历史消息加载失败:', error)
-			uni.showToast({ title: '历史消息加载失败', icon: 'error', duration: 1500 })
-		} finally {
-			isRefreshing.value = false
+			console.error('下拉刷新失败:', error)
+			// 告知z-paging下拉刷新失败
+			zPagingRef.value.complete(msgList.value, 'fail')
 		}
 	}
 
@@ -558,6 +674,86 @@
 		// 预留处理位置
 		console.log('用户取消了喜欢', msg)
 	}
+
+	// 嵌入z-paging相关逻辑
+	const zPagingRef = ref()
+	const myInfo = AppStorage.get('userInfo') as Info.User;
+	watch(msgList, (val) => {
+		// pagingList.value = val
+	}, { immediate: true, deep: true })
+	watch(scrollTo, async (val) => {
+		await nextTick()
+		if (zPagingRef.value) {
+			if (val === 'top') {
+				zPagingRef.value.scrollToTop()
+			} else if (val === 'bottom') {
+				zPagingRef.value.scrollToBottom()
+			}
+		}
+	})
+	const loadMoreMessages = () => {
+		onRefresh()
+	}
+
+	// 统一处理消息点击（图片、语音、文件、视频等）
+	const handleMessageClick = (type : string, content : any) => {
+		switch (type) {
+			case 'img':
+				uni.previewImage({ urls: [content.url], current: content.url })
+				break
+			case 'voice':
+				if (audioContext && playingVoice === content.voiceUrl) {
+					audioContext.stop()
+					playingVoice = ''
+				} else {
+					if (audioContext) audioContext.stop()
+					audioContext = uni.createInnerAudioContext()
+					audioContext.src = content.voiceUrl
+					audioContext.play()
+					playingVoice = content.voiceUrl
+					audioContext.onEnded(() => { playingVoice = '' })
+				}
+				break
+			case 'file':
+				uni.downloadFile({
+					url: content.fileUrl,
+					success: (res) => {
+						if (res.statusCode === 200) {
+							uni.openDocument({ filePath: res.tempFilePath })
+						}
+					}
+				})
+				break
+			case 'video':
+				uni.navigateTo({
+					url: `/pages/video-player/video-player?url=${encodeURIComponent(content.videoUrl)}`
+				})
+				break
+			default:
+				console.log('消息点击', type, content)
+		}
+	}
+
+	// 消息反馈相关事件处理
+	const handleFeedback = (msg : InnerMessage) => {
+		onFeedback(msg)
+	}
+
+	const handleLike = (msg : InnerMessage) => {
+		onLike(msg)
+	}
+
+	const handleDislike = (msg : InnerMessage) => {
+		onDislike(msg)
+	}
+
+	const handleUndislike = (msg : InnerMessage) => {
+		onUndislike(msg)
+	}
+
+	const handleUnlike = (msg : InnerMessage) => {
+		onUnlike(msg)
+	}
 </script>
 
 
@@ -577,9 +773,6 @@
 
 	.chat-content {
 		flex: 1;
-		overflow: hidden;
-		margin-top: 0;
-		margin-bottom: 80px;
 		background-color: #f5f5f5;
 		padding-top: 10rpx;
 	}

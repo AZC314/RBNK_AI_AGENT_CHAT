@@ -63,6 +63,12 @@
 	// }
 	// 图片处理
 	const handleImage = () => {
+		uni.showToast({
+			title: '功能开发中',
+			icon: 'none',
+			duration: 2000
+		});
+		return
 		uni.chooseImage({
 			count: 9,
 			success: (res) => {
@@ -74,6 +80,12 @@
 
 	// 附件处理
 	const handleAttachment = () => {
+		uni.showToast({
+			title: '功能开发中',
+			icon: 'none',
+			duration: 2000
+		});
+		return
 		uni.chooseFile({
 			count: 1,
 			success: (res) => {
@@ -85,6 +97,13 @@
 
 	// 语音处理
 	const handleVoice = () => {
+		uni.showToast({
+			title: '功能开发中',
+			icon: 'none',
+			duration: 2000
+		});
+		return
+					
 		if (isRecording.value) {
 			stopRecording()
 		} else {
@@ -205,7 +224,7 @@
 	@import "@/uni.scss";
 
 	.chat-input-container {
-		position: fixed;
+		// position: fixed;
 		bottom: 0;
 		left: 0;
 		right: 0;
