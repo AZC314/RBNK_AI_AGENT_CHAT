@@ -103,7 +103,7 @@
 			duration: 2000
 		});
 		return
-					
+
 		if (isRecording.value) {
 			stopRecording()
 		} else {

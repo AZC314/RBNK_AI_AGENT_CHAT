@@ -1,34 +1,15 @@
 <template>
 	<view class="chat-container">
 		<view class="chat-content">
-			<z-paging
-				ref="zPagingRef"
-				v-model="msgList"
-				@query="loadMoreMessages"
-				@refresh="onRefresh"
-				:auto="false"
-				:auto-show-back-to-top="false"
-				:to-top-disabled="true"
-				:show-loading-more-when-no-more="true"
-				:refresher-enabled="true"
-				:refresher-threshold="80"
-				:refresher-default-style="'black'"
-				:refresher-background="'#f5f5f5'"
-				:loading-more-enabled="false"
-				:empty-view-text="'暂无消息'"
-				:empty-view-img="''"
-				:auto-scroll-to-top-when-reload="false"
-				:auto-hide-loading-after-first-loaded="true"
-				:show-refresher-update-time="false"
-				:refresher-update-time-key="'chat'"
-				:refresher-complete-delay="200"
-				:refresher-complete-duration="300"
-				:refresher-end-bounce-enabled="true"
-				:refresher-fps="40"
-				:refresher-pull-rate="0.75"
-				:refresher-out-rate="0.65"
-				:chat-mode="true"
-			>
+			<z-paging ref="zPagingRef" v-model="msgList" :scroll-to="scrollTo" @query="loadMoreMessages" @refresh="onRefresh" :auto="false"
+				:auto-show-back-to-top="false" :to-top-disabled="true" :show-loading-more-when-no-more="true"
+				:refresher-enabled="true" :refresher-threshold="80" :refresher-default-style="'black'"
+				:refresher-background="'#f5f5f5'" :loading-more-enabled="false" :empty-view-text="'暂无消息'"
+				:empty-view-img="''" :auto-scroll-to-top-when-reload="false"
+				:auto-hide-loading-after-first-loaded="true" :show-refresher-update-time="false"
+				:refresher-update-time-key="'chat'" :refresher-complete-delay="200" :refresher-complete-duration="300"
+				:refresher-end-bounce-enabled="true" :refresher-fps="40" :refresher-pull-rate="0.75"
+				:refresher-out-rate="0.65" :chat-mode="true">
 				<template #top>
 					<uni-nav-bar :fixed="true" color="#091020" background-color="#fff" :border="false" height="60px"
 						left-width="100%">
@@ -44,42 +25,50 @@
 								</view>
 								<view class="user-info">
 									<view class="user-name">{{ AppStorage.get(CURRENT_ANENT_INFO).username }}</view>
-									<view class="user-desc">{{ AppStorage.get(CURRENT_ANENT_INFO).departmentName }}</view>
+									<view class="user-desc">{{ AppStorage.get(CURRENT_ANENT_INFO).departmentName }}
+									</view>
 								</view>
 							</view>
 						</template>
 					</uni-nav-bar>
 				</template>
-				
+
 				<!-- 消息列表 -->
 				<view v-for="msg in msgList" :key="msg.msg.id">
 					<kit-chat-system-msg v-if="msg.type === 'system'" :msg="msg.msg" />
-					<kit-chat-my-msg v-else-if="msg.type === 'user' && msg.isSelf(myInfo.id ?? '000')" :msg="msg.msg" @favour_clinck="handleMessageClick" />
-					<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback" @like="handleLike" @dislike="handleDislike" @undislike="handleUndislike" @unlike="handleUnlike" />
+					<kit-chat-my-msg v-else-if="msg.type === 'user' && msg.isSelf(myInfo.id ?? '000')" :msg="msg.msg"
+						@favour_clinck="handleMessageClick" />
+					<kit-chat-other-msg v-else :msg="msg.msg" @click="handleMessageClick" @feedback="handleFeedback"
+						@like="handleLike" @dislike="handleDislike" @undislike="handleUndislike"
+						@unlike="handleUnlike" />
 				</view>
-			<template #bottom >
-				<uni-popup ref="popupRef" type="bottom" @close="closePopup" @maskClick="closePopup">
-					<view class="feedback-popup-content">
-						<view class="popup-header">
-							<text class="popup-title">反馈</text>
-							<text class="popup-close" @click="closePopup">×</text>
-						</view>
-						<view class="popup-tags">
-							<view v-for="(tag, idx) in feedbackTags" :key="tag"
-								:class="['popup-tag', selectedTag === idx ? 'active' : '']" @click="selectTag(idx)">{{ tag }}
+				<!-- 占位，防止被底部输入区遮挡，高度与chat-input一致，仅输入区显示时才显示 -->
+				<view v-if="!popupVisible" style="height: 80px，background: #000;; flex-shrink: 0;"></view>
+				<template #bottom>
+					<uni-popup ref="popupRef" type="bottom" @close="closePopup" @maskClick="closePopup">
+						<view class="feedback-popup-content">
+							<view class="popup-header">
+								<text class="popup-title">反馈</text>
+								<text class="popup-close" @click="closePopup">×</text>
 							</view>
+							<view class="popup-tags">
+								<view v-for="(tag, idx) in feedbackTags" :key="tag"
+									:class="['popup-tag', selectedTag === idx ? 'active' : '']" @click="selectTag(idx)">
+									{{ tag }}
+								</view>
+							</view>
+							<view class="popup-textarea-wrapper">
+								<textarea v-model="feedbackText" class="popup-textarea"
+									:placeholder="textareaPlaceholder" auto-height />
+							</view>
+							<button class="popup-submit" @click="submitFeedback">提交</button>
 						</view>
-						<view class="popup-textarea-wrapper">
-							<textarea v-model="feedbackText" class="popup-textarea" :placeholder="textareaPlaceholder"
-								auto-height />
-						</view>
-						<button class="popup-submit" @click="submitFeedback">提交</button>
-					</view>
-				</uni-popup>
-				<chat-input v-if="!popupVisible" @send="handleSend" @stopChat="handleStopChat" :canStopChat="canStopChat"
-					@image-upload="handleImageUpload" @attachment-upload="handleAttachmentUpload"
-					@voice-record="handleVoiceRecord" @toggle-settings="handleToggleSettings" @clear="handleClear" />
-			</template>
+					</uni-popup>
+					<chat-input v-if="!popupVisible" @send="handleSend" @stopChat="handleStopChat"
+						:canStopChat="canStopChat" @image-upload="handleImageUpload"
+						@attachment-upload="handleAttachmentUpload" @voice-record="handleVoiceRecord"
+						@toggle-settings="handleToggleSettings" @clear="handleClear" />
+				</template>
 			</z-paging>
 		</view>
 	</view>
@@ -193,7 +182,7 @@
 				await messageStore.deleteMessages(chatId);
 				data.map(elem => messageStore.addMessage(chatId, elem));
 				handleMsgList(data);
-				
+
 				// 滚动到底部显示最新消息
 				await nextTick()
 				setTimeout(() => {
@@ -224,7 +213,7 @@
 		}
 		const info = AppStorage.get(CURRENT_ANENT_INFO) as UserInfo
 		chatTitle.value = info.username!;
-		
+
 		// 初始化消息并滚动到底部
 		init()
 	})
@@ -233,11 +222,11 @@
 	onMounted(async () => {
 		messageId = String(Date.now() * Math.random() | 0)
 		await loadAvatar()
-		
+
 		// 等待init完成，然后通知z-paging
 		let retryCount = 0
 		const maxRetries = 50 // 最多等待5秒
-		
+
 		const checkInitComplete = () => {
 			if (msgList.value.length > 0) {
 				// init已完成，通知z-paging
@@ -261,7 +250,7 @@
 				})
 			}
 		}
-		
+
 		// 开始检查
 		setTimeout(checkInitComplete, 100)
 	})
@@ -316,6 +305,19 @@
 					conversation_id: conversationId
 				}
 			}));
+			//todo强制到底
+			nextTick(() => {
+				scrollTo.value = 'bottom';
+				if (zPagingRef.value && typeof zPagingRef.value.scrollToBottom === 'function') {
+					zPagingRef.value.scrollToBottom();
+				}
+				setTimeout(() => {
+					scrollTo.value = 'bottom';
+					if (zPagingRef.value && typeof zPagingRef.value.scrollToBottom === 'function') {
+						zPagingRef.value.scrollToBottom();
+					}
+				}, 50);
+			});
 
 			canStopChat.value = true;
 
@@ -340,7 +342,7 @@
 			}
 
 			const onChar = (char : string, msgId : string) => {
-				console.log('Received char:', char);
+				// console.log('Received char:', char);
 				const existingStreamMsg = msgList.value.find(msg => msg.msg.id === messageId);
 
 				if (existingStreamMsg) {
@@ -349,6 +351,19 @@
 						existingStreamMsg.msg.id = msgId;
 						messageId = msgId;
 					}
+					//todo强制到底
+					nextTick(() => {
+						scrollTo.value = 'bottom';
+						if (zPagingRef.value && typeof zPagingRef.value.scrollToBottom === 'function') {
+							zPagingRef.value.scrollToBottom();
+						}
+						setTimeout(() => {
+							scrollTo.value = 'bottom';
+							if (zPagingRef.value && typeof zPagingRef.value.scrollToBottom === 'function') {
+								zPagingRef.value.scrollToBottom();
+							}
+						}, 50);
+					});
 				} else {
 					msgList.value.push(new ChatMessage({
 						type: 'user',
@@ -460,16 +475,16 @@
 			const currentMessages = messageStore.getMessages(chatId) || []
 			const firstMsg = currentMessages[0]
 			const first_id = firstMsg ? firstMsg.message_id || firstMsg.id : undefined
-			
+
 			const params : any = {
 				conversation_id: conversationId,
 				limit: 10
 			}
 			if (first_id) params.first_id = first_id
-			
+
 			const res = await GET_MESSAGE(params)
 			const data = res as Info.message[]
-			
+
 			if (data && data.length > 0) {
 				// 有新数据，添加到列表前面
 				await messageStore.unshiftAddMessage(chatId, data)
