@@ -21,7 +21,7 @@
 					</view>
 
 				</view>
-				<text class="last-message">{{ session.lastMessage }}</text>
+				<view class="last-message" v-html="session.lastMessage"></view>
 			</view>
 		</template>
 		<template v-slot:footer>
@@ -206,12 +206,17 @@
 		}
 	}
 
-	.last-message {
+	.last-message, .last-message * {
 		font-size: 26rpx;
 		color: #999;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		display: block;
+	}
+
+	br {
+		display: none;
 	}
 
 	.time {

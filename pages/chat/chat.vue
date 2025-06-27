@@ -4,7 +4,7 @@
 			<z-paging ref="zPagingRef" v-model="msgList" :scroll-to="scrollTo" @query="loadMoreMessages" @refresh="onRefresh" :auto="false"
 				:auto-show-back-to-top="false" :to-top-disabled="true" :show-loading-more-when-no-more="true"
 				:refresher-enabled="true" :refresher-threshold="80" :refresher-default-style="'black'"
-				:refresher-background="'#f5f5f5'" :loading-more-enabled="false" :empty-view-text="'暂无消息'"
+				:refresher-background="'#FFF'" :loading-more-enabled="false" :empty-view-text="'暂无消息'"
 				:empty-view-img="''" :auto-scroll-to-top-when-reload="false"
 				:auto-hide-loading-after-first-loaded="true" :show-refresher-update-time="false"
 				:refresher-update-time-key="'chat'" :refresher-complete-delay="200" :refresher-complete-duration="300"
@@ -777,7 +777,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
-		background-color: #f5f5f5;
+		background-color: #fff;
 
 		.leftcontext {
 			display: flex;
@@ -788,7 +788,7 @@
 
 	.chat-content {
 		flex: 1;
-		background-color: #f5f5f5;
+		background-color: #fff;
 		padding-top: 10rpx;
 	}
 

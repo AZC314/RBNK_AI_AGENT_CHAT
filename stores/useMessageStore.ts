@@ -72,7 +72,7 @@ export const useMessageStore = defineStore('message', {
                 } else if (message && typeof message === 'object') {
                     // 单个消息对象
                     this.messagesMap[key].unshift(message)
-                    await addMessageToDB(message)
+            await addMessageToDB(message)
                 } else {
                     console.error('unshiftAddMessage: message is not a valid object or array', message)
                 }

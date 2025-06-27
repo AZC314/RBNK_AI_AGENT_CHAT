@@ -1,0 +1,249 @@
+.markdown-content {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #222;
+  word-break: break-word;
+  white-space: normal;
+  text-align: left;
+
+  :deep(*) {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :deep(p + p),
+  :deep(p + blockquote),
+  :deep(blockquote + p),
+  :deep(ul + p),
+  :deep(ol + p),
+  :deep(p + ul),
+  :deep(p + ol),
+  :deep(blockquote + blockquote) {
+    margin-top: 12rpx;
+  }
+
+  :deep(p) {
+    margin-bottom: 12rpx;
+  }
+
+  :deep(h1),
+  :deep(h2),
+  :deep(h3),
+  :deep(h4),
+  :deep(h5),
+  :deep(h6) {
+    font-weight: 600;
+    margin: 24rpx 0 12rpx 0;
+  }
+
+  :deep(h1) { font-size: 32rpx; border-bottom: 1rpx solid #eaeaea; }
+  :deep(h2) { font-size: 30rpx; border-bottom: 1rpx solid #eaeaea; }
+  :deep(h3) { font-size: 28rpx; }
+  :deep(h4) { font-size: 26rpx; }
+  :deep(h5) { font-size: 24rpx; }
+  :deep(h6) { font-size: 22rpx; color: #666; }
+
+  :deep(ul),
+  :deep(ol) {
+    padding-left: 24rpx;
+    margin-bottom: 12rpx;
+  }
+
+  :deep(li + li) {
+    margin-top: 8rpx;
+  }
+
+  :deep(blockquote) {
+    border-left: 4rpx solid #007aff;
+    background: #f7f7f8;
+    padding: 12rpx 16rpx;
+    margin: 12rpx 0;
+  }
+
+  :deep(blockquote blockquote) {
+    margin-top: 8rpx;
+    margin-bottom: 8rpx;
+    padding: 8rpx 12rpx;
+  }
+
+  :deep(pre) {
+    background: #f6f8fa;
+    padding: 16rpx;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    overflow-x: auto;
+    margin: 12rpx 0;
+  }
+
+  :deep(code) {
+    background: #f0f0f0;
+    padding: 4rpx 8rpx;
+    border-radius: 4rpx;
+    font-size: 24rpx;
+    color: #e01e5a;
+  }
+
+  :deep(a) {
+    color: #007aff;
+    text-decoration: underline;
+  }
+
+  :deep(img) {
+    max-width: 100%;
+    margin: 12rpx 0;
+    border-radius: 4rpx;
+  }
+
+  :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12rpx 0;
+    border: 1rpx solid #eaeaea;
+  }
+
+  :deep(th),
+  :deep(td) {
+    padding: 8rpx 12rpx;
+    border: 1rpx solid #eaeaea;
+  }
+
+  :deep(th) {
+    background: #f8f8f8;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  :deep(tr:nth-child(even)) {
+    background: #f8f8f8;
+  }
+
+  :deep(hr) {
+    border: none;
+    border-top: 1rpx solid #eaeaea;
+    margin: 16rpx 0;
+  }
+
+  :deep(p:empty) {
+    display: none;
+  }
+
+  :deep(.code-block-wrapper) {
+    margin: 16rpx 0;
+    border-radius: 8rpx;
+    background: #fafbfc;
+    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03);
+    overflow: hidden;
+    border: 1rpx solid #f0f0f0;
+  }
+
+  :deep(.code-block-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f7f7fa;
+    padding: 0 18rpx;
+    height: 38rpx;
+    font-size: 22rpx;
+    color: #888;
+    border-bottom: 1rpx solid #f0f0f0;
+    position: relative;
+  }
+
+  :deep(.code-lang) {
+    font-weight: 500;
+    color: #6e6e80;
+    font-size: 22rpx;
+    letter-spacing: 1rpx;
+    padding-right: 8rpx;
+  }
+
+  :deep(.copy-btn) {
+    cursor: pointer;
+    color: #007aff;
+    font-size: 20rpx;
+    padding: 2rpx 18rpx 2rpx 28rpx;
+    border-radius: 16rpx;
+    background: #f0f4fa;
+    transition: background 0.2s;
+    margin-left: 12rpx;
+    user-select: none;
+    border: 1rpx solid #e0e6ed;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 60rpx;
+    justify-content: center;
+  }
+
+  :deep(.copy-btn)::before {
+    content: '';
+    display: inline-block;
+    width: 18rpx;
+    height: 18rpx;
+    background: url('/static/icons/copy.png') center/contain no-repeat;
+    position: absolute;
+    left: 8rpx;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+  }
+
+  :deep(.copy-btn:hover) {
+    background: #e6f0fa;
+    color: #005fa3;
+  }
+
+  :deep(.code-block-wrapper pre) {
+    margin: 0;
+    padding: 12rpx 16rpx;
+    background: transparent;
+    border-radius: 0 0 8rpx 8rpx;
+    font-size: 24rpx;
+    overflow-x: auto;
+  }
+
+  :deep(.code-block-content) {
+    padding: 16rpx;
+    background: #f6f8fa;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f6f8fa;
+  }
+
+  :deep(.code-block-content::-webkit-scrollbar) {
+    height: 6rpx;
+  }
+
+  :deep(.code-block-content::-webkit-scrollbar-track) {
+    background: #f6f8fa;
+    border-radius: 3rpx;
+  }
+
+  :deep(.code-block-content::-webkit-scrollbar-thumb) {
+    background: #c1c1c1;
+    border-radius: 3rpx;
+  }
+
+  :deep(.code-block-content::-webkit-scrollbar-thumb:hover) {
+    background: #a8a8a8;
+  }
+
+  :deep(.code-block-content code) {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 26rpx;
+    line-height: 1.5;
+    color: #24292e;
+    white-space: pre;
+    word-break: normal;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+    min-width: 100%;
+  }
+}

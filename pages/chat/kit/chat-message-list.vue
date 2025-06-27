@@ -181,12 +181,12 @@
 <style lang="scss" scoped>
 	.chat-message-list {
 		height: 100%;
-		background-color: #f5f5f5;
+		background-color: #fff;
 
 		.message-container {
 			padding: 10rpx 0 5rpx;
 			min-height: 100%;
-			background-color: #f5f5f5;
+			background-color: #fff;
 		}
 
 		// 消息动画

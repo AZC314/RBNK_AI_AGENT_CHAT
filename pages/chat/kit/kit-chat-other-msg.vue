@@ -171,10 +171,16 @@
 		}
 
 		.bubble {
-			background-color: #f5f5f5;
+			background-color: #FFF;
 			color: #333;
 			margin-left: 12rpx;
-			overflow: clip;
+			margin-bottom: 2rpx;
+			min-width: 0;
+			/* 必须加，flex 子项内容才能缩小换行！ */
+			word-break: break-word;
+			/* 自动在单词/字符边界换行 */
+			white-space: normal;
+			/* 正常换行，不强制一行 */
 
 			&::after {
 				left: -16rpx;
@@ -213,8 +219,8 @@
 	.message-initeract {
 		display: flex;
 		flex-direction: row;
-		gap: 18rpx;
-		margin-top: 10rpx;
+		gap: 0 18rpx;
+		margin-top: 2rpx;
 	}
 
 	.feedback-btn {

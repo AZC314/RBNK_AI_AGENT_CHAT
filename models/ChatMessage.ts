@@ -126,7 +126,7 @@ export default class ChatMessage {
 			msg: {
 				id: params.message_id,
 				type: "markdown",
-				content: { text: '# ' + params.content },
+				content: { text: params.content },
 				userinfo: userInfo,
 				time: new Date(params.created_at),
 				conversation_id: params.conversation_id
