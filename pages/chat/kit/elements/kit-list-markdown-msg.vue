@@ -1,11 +1,11 @@
 <template>
-  <view class="markdown-message" @tap="handleClick">
-    <view class="markdown-content" v-html="renderedHtml" @tap="handleContentTap"></view>
-  </view>
+  <div class="markdown-message">
+    <div class="markdown-content" v-html="renderedHtml" @click="handleContentClick"></div>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, onMounted, nextTick, computed } from 'vue';
+import { ref, watch, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
@@ -22,133 +22,124 @@ mermaid.initialize({
 });
 
 const props = defineProps<{ content: MessageContent }>();
-const emit = defineEmits<{ (e: 'click', type: string, content: MessageContent): void }>();
 const renderedHtml = ref('');
 
-// 自定义渲染器处理 mermaid 代码块和带复制按钮的代码块
 const renderer = new marked.Renderer();
-const originalCodeRenderer = renderer.code.bind(renderer);
-
 renderer.code = function({ text, lang }) {
-  if (lang === 'mermaid') {
-    return `<div class="mermaid">${text}</div>`;
-  }
-  // 代码块带语言和复制按钮
   const codeEscaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const langLabel = lang ? lang : '';
   return `
     <div class="code-block-wrapper">
       <div class="code-block-header">
-        <span class="code-lang">${langLabel}</span>
+        <span class="code-lang">${lang || ''}</span>
         <span class="copy-btn" data-code="${encodeURIComponent(text)}">复制代码</span>
       </div>
-      <div class="code-block-content"><code class="language-${langLabel}">${codeEscaped}</code></div>
+      <div class="code-block-content">
+        <code class="language-${lang}">${codeEscaped}</code>
+      </div>
     </div>
   `;
 };
+marked.setOptions({ renderer, breaks: true, gfm: true });
 
-marked.setOptions({
-  renderer,
-  breaks: true,
-  gfm: true
-});
+const wrapTable = (html: string) => {
+  return html.replace(/<table([\s\S]*?)<\/table>/g, match => `<div class="table-scroll-x">${match}</div>`);
+};
 
 const renderMarkdown = async () => {
   if (props.content.text) {
     const rawHtml = await marked.parse(props.content.text);
-    console.debug('Raw HTML:', rawHtml); // 调试信息
-    renderedHtml.value = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['data-code'] });
-    console.debug('Processed HTML:', renderedHtml.value); // 调试信息
+    renderedHtml.value = wrapTable(DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['data-code'] }));
     nextTick(() => {
-      try {
-        mermaid.init(undefined, '.mermaid');
-      } catch (e) {
-        console.error('Mermaid render error:', e);
-      }
+      try { mermaid.init(undefined, '.mermaid'); } catch (e) {}
     });
   } else {
     renderedHtml.value = '';
   }
 };
 
-// 复制代码功能
-const copyCode = (code: string) => {
-  uni.setClipboardData({
-    data: code,
-    success: () => {
-      uni.showToast({
-        title: '已复制',
-        icon: 'success',
-        duration: 1200
-      });
-    },
-    fail: () => {
-      uni.showToast({
-        title: '复制失败',
-        icon: 'none'
-      });
-    }
-  });
-};
-
-// 处理内容的点击事件
-const handleContentTap = (e: any) => {
-  // 阻止事件冒泡
-  e.stopPropagation();
-  
-  // 检查是否点击了复制按钮
-  if (e.target && e.target.dataset && e.target.dataset.code) {
-    const code = decodeURIComponent(e.target.dataset.code);
-    copyCode(code);
-    return;
-  }
-};
-
-// 添加样式确保 mermaid 图表正常显示
-const addMermaidStyles = () => {
-  if (typeof window !== 'undefined' && document) {
-    if (!document.getElementById('mermaid-style')) {
-      const style = document.createElement('style');
-      style.id = 'mermaid-style';
-      style.textContent = `
-        .mermaid {
-          background-color: white;
-          margin: 16px 0;
-          padding: 16px;
-          border-radius: 8px;
-          overflow: auto;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }
-};
-
-onMounted(() => {
-  addMermaidStyles();
-});
-
 watch(() => props.content.text, renderMarkdown, { immediate: true });
 
-const handleClick = () => {
-  emit('click', 'markdown', props.content);
+const handleContentClick = (e: any) => {
+  const target = e.target;
+  if (target.classList && target.classList.contains('copy-btn') && target.dataset.code) {
+    const code = decodeURIComponent(target.dataset.code);
+    uni.setClipboardData({
+      data: code,
+      success: () => { uni.showToast({ title: '复制成功', icon: 'none' }); },
+      fail: () => { uni.showToast({ title: '复制失败', icon: 'none' }); }
+    });
+  }
 };
 </script>
 
 <style lang="scss" scoped>
 @import '../markdown.scss';
 
-.markdown-message {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-}
-
-:deep(.mermaid) {
-  background-color: #f9f9f9;
+.code-block-wrapper {
   margin: 16rpx 0;
-  padding: 16rpx;
+  border: 1rpx solid #eee;
   border-radius: 8rpx;
-  overflow: auto;
+  overflow: hidden;
+}
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  background: #f5f5f5;
+}
+.code-lang {
+  color: #888;
+  font-size: 22rpx;
+}
+.copy-btn {
+  color: #007aff;
+  font-size: 24rpx;
+  cursor: pointer;
+  user-select: none;
+  padding: 2rpx 10rpx;
+  border-radius: 4rpx;
+  transition: background 0.2s;
+}
+.copy-btn:hover {
+  background: #e6f0fa;
+}
+.code-block-content {
+  padding: 16rpx;
+  background: #f6f8fa;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f6f8fa;
+}
+.code-block-content::-webkit-scrollbar {
+  height: 6rpx;
+}
+.code-block-content::-webkit-scrollbar-track {
+  background: #f6f8fa;
+  border-radius: 3rpx;
+}
+.code-block-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3rpx;
+}
+.code-block-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+.code-block-content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: #24292e;
+  white-space: pre;
+  word-break: normal;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  display: block;
+  min-width: 100%;
 }
 </style>

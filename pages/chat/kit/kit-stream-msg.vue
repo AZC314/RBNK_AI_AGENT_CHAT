@@ -1,12 +1,12 @@
 <template>
-	<view class="stream-msg">
-		<view class="markdown-content" v-html="renderedHtml" @tap="handleContentTap"></view>
-		<text v-if="loading" class="cursor">|</text>
-	</view>
+	<div class="stream-msg">
+		<div class="markdown-content" v-html="renderedHtml" @click="handleContentClick"></div>
+		<span v-if="loading" class="cursor">|</span>
+	</div>
 </template>
 
 <script setup lang="ts">
-	import { ref, watch, onBeforeUnmount, nextTick, computed } from 'vue';
+	import { ref, watch, onBeforeUnmount, nextTick } from 'vue';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
@@ -25,25 +25,17 @@
 
 	// 自定义渲染器，代码块带语言和复制按钮，且不显示第一个\n
 	const renderer = new marked.Renderer();
-	const originalCodeRenderer = renderer.code.bind(renderer);
 	renderer.code = function({ text, lang }) {
-		// 处理标题和内容分离
-		let codeTitle = '';
-		let codeBody = text;
-		const firstNewline = text.indexOf('\n');
-		if (firstNewline !== -1) {
-			codeTitle = text.slice(0, firstNewline).trim();
-			codeBody = text.slice(firstNewline + 1);
-		}
-		const codeEscaped = codeBody.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-		const langLabel = lang ? lang : '';
+		const codeEscaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 		return `
 			<div class="code-block-wrapper">
 				<div class="code-block-header">
-					<span class="code-lang">${codeTitle || langLabel}</span>
-					<span class="copy-btn" data-code="${encodeURIComponent(codeBody)}">复制代码</span>
+					<span class="code-lang">${lang || ''}</span>
+					<span class="copy-btn" data-code="${encodeURIComponent(text)}">复制代码</span>
 				</div>
-				<div class="code-block-content"><code class="language-${langLabel}">${codeEscaped}</code></div>
+				<div class="code-block-content">
+					<code class="language-${lang}">${codeEscaped}</code>
+				</div>
 			</div>
 		`;
 	};
@@ -60,15 +52,19 @@
 		stop = false;
 	};
 
+	const wrapTable = (html: string) => {
+		return html.replace(/<table([\s\S]*?)<\/table>/g, match => `<div class=\"table-scroll-x\">${match}</div>`);
+	};
+
 	const renderMarkdown = async () => {
 		const rawHtml = await marked.parse(displayText.value);
-		renderedHtml.value = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['data-code'] });
+		renderedHtml.value = wrapTable(DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['data-code'] }));
 	};
 
 	// 复制代码功能
-	const copyCode = (code: string) => {
+	const copyToClipboard = (text: string) => {
 		uni.setClipboardData({
-			data: code,
+			data: text,
 			success: () => {
 				uni.showToast({
 					title: '已复制',
@@ -86,15 +82,11 @@
 	};
 
 	// 处理rich-text的点击事件
-	const handleContentTap = (e: any) => {
-		// 阻止事件冒泡
-		e.stopPropagation();
-		
-		// 检查是否点击了复制按钮
-		if (e.target && e.target.dataset && e.target.dataset.code) {
-			const code = decodeURIComponent(e.target.dataset.code);
-			copyCode(code);
-			return;
+	const handleContentClick = (e: any) => {
+		const target = e.target;
+		if (target.classList && target.classList.contains('copy-btn') && target.dataset.code) {
+			const code = decodeURIComponent(target.dataset.code);
+			copyToClipboard(code);
 		}
 	};
 
@@ -145,5 +137,73 @@
 
 @keyframes blink {
 	50% { opacity: 0; }
+}
+
+.code-block-wrapper {
+	margin: 16rpx 0;
+	border: 1rpx solid #eee;
+	border-radius: 8rpx;
+	overflow: hidden;
+}
+.code-block-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8rpx 16rpx;
+	background: #f5f5f5;
+}
+.code-lang {
+	color: #888;
+	font-size: 22rpx;
+}
+.copy-btn {
+	color: #007aff;
+	font-size: 24rpx;
+	cursor: pointer;
+	user-select: none;
+	padding: 2rpx 10rpx;
+	border-radius: 4rpx;
+	transition: background 0.2s;
+}
+.copy-btn:hover {
+	background: #e6f0fa;
+}
+.code-block-content {
+	padding: 16rpx;
+	background: #f6f8fa;
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+	position: relative;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: thin;
+	scrollbar-color: #c1c1c1 #f6f8fa;
+}
+.code-block-content::-webkit-scrollbar {
+	height: 6rpx;
+}
+.code-block-content::-webkit-scrollbar-track {
+	background: #f6f8fa;
+	border-radius: 3rpx;
+}
+.code-block-content::-webkit-scrollbar-thumb {
+	background: #c1c1c1;
+	border-radius: 3rpx;
+}
+.code-block-content::-webkit-scrollbar-thumb:hover {
+	background: #a8a8a8;
+}
+.code-block-content code {
+	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-size: 26rpx;
+	line-height: 1.5;
+	color: #24292e;
+	white-space: pre;
+	word-break: normal;
+	background: transparent;
+	padding: 0;
+	border-radius: 0;
+	display: block;
+	min-width: 100%;
 }
 </style>

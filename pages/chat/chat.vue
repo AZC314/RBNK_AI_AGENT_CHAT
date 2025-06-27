@@ -259,6 +259,7 @@
 	onBeforeUnmount(() => {
 		AppStorage.delete(CONVERSATIONID)
 		AppStorage.delete('textIDList')
+		messageStore.saveToStorage()
 		// 清理音频上下文
 		if (audioContext) {
 			audioContext.stop()
@@ -431,9 +432,15 @@
 				conversation_id: conversationId,
 				task_id: taskId
 			});
+			console.log('conversation_id'+ conversationId +' task_id:'+taskId);
+			if(response.success as boolean){
+				console.log('Chat stopped successfully:', response);
+				canStopChat.value = false;
+			}else{
+				throw(response?.detail)
+			}
 
-			console.log('Chat stopped successfully:', response);
-			canStopChat.value = false;
+			
 		} catch (error) {
 			console.error('Error stopping chat:', error);
 			uni.showToast({
