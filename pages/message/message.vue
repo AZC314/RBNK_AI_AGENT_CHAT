@@ -69,7 +69,7 @@ import { LinkManModel } from 'models/LinkManModel'
 		const needUpdate = await sessionStore.initStore()
 
 		if (needUpdate) {
-			handSessionList(new Object({ page_size: 40, sort_by: '-updated_at' }))
+			handSessionList(new Object({ page_size: 10, sort_by: '-updated_at' }))
 		}
 	}
 

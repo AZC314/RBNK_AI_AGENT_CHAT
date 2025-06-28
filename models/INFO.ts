@@ -1,4 +1,3 @@
-
 export namespace Info {
 
 	export interface User {
@@ -38,7 +37,7 @@ export namespace Info {
 		total_pages : number	//总页数
 	}
 
-	export interface message {
+	export interface Message {
 		message_id : string,
 		content : string,
 		conversation_id : string,
@@ -47,35 +46,35 @@ export namespace Info {
 		created_at : string,
 		inputs : {
 			is_think : 'N' | 'Y',
-			NUM:any,
-			prompt:any
+			NUM : any,
+			prompt : any
 		},
 		message_files : [],
 		feedback : any,
 		retriever_resources : []
 	}
-	
-	export interface digitalHumans {
-	 id: number;
-	  name: string;  				//数字人姓名
-	  description: string;			//数值人描述
-	  icon: string;					//数值人头像
-	  is_active: boolean;
-	  is_digital_human: boolean;
-	  department_id: number | null;		//数值人部门ID
-	  department_name: string | null;  //数值人部门名称
-	  agent_category_id: number;     //agentID
-	  category: {    
-	    name: string;
-	    description: string;         
-	    id: number;
-	    created_at: string;  
-	    updated_at: string;  
-	  };
+
+	export interface DigitalHumans {
+		id : number;
+		name : string;  				//数字人姓名
+		description : string;			//数值人描述
+		icon : string;					//数值人头像
+		is_active : boolean;
+		is_digital_human : boolean;
+		department_id : number | null;		//数值人部门ID
+		department_name : string | null;  //数值人部门名称
+		agent_category_id : number;     //agentID
+		category : {
+			name : string;
+			description : string;
+			id : number;
+			created_at : string;
+			updated_at : string;
+		};
 	}
-	
-	export interface digitalHumansContext{
-		data:digitalHumans[],
+
+	export interface DigitalHumansContext {
+		data : DigitalHumans[],
 		total : number,     //消息总条数
 		page : number,	  	//页数
 		page_size : 20,	  	//每页消息条数

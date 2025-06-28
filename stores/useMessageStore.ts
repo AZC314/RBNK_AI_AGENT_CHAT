@@ -8,10 +8,10 @@ const MESSAGE_MAP_STORAGE_KEY = 'chat_messages_map'
 
 export const useMessageStore = defineStore('message', {
     state: () => ({
-        messagesMap: {} as Record<string, Info.message[]> // 每个会话的消息队列
+        messagesMap: {} as Record<string, Info.Message[]> // 每个会话的消息队列
     }),
     getters: {
-        getMessages: (state) => (key: string): Info.message[] => {
+        getMessages: (state) => (key: string): Info.Message[] => {
             return state.messagesMap[key] || []
         }
     },
@@ -38,7 +38,7 @@ export const useMessageStore = defineStore('message', {
         },
         async loadMessages(key: string) {
             const raw = await getMessagesById(key)
-            const formatted = raw.map(item => item as Info.message)
+            const formatted = raw.map(item => item as Info.Message)
             this.messagesMap[key] = formatted
             this.saveToStorage()
         },
@@ -47,7 +47,7 @@ export const useMessageStore = defineStore('message', {
             if (!this.messagesMap[key]) {
                 this.messagesMap[key] = []
             }
-            this.messagesMap[key].push(message as Info.message)
+            this.messagesMap[key].push(message as Info.Message)
             await addMessageToDB(message)
             this.saveToStorage()
         },

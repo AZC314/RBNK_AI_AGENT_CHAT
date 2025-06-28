@@ -39,7 +39,6 @@
 		watch,
 	} from 'vue'
 	import { AppStorage } from '@/stores/AppStorage'
-	import { CANSTOPCHAT } from '@/constances/constances'
 
 	const emit = defineEmits(['image-upload', 'attachment-upload', 'voice-record', 'toggle-settings', 'send', 'stopChat', 'clear'])
 	const message = ref('')

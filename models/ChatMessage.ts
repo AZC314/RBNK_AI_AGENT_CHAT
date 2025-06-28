@@ -104,7 +104,7 @@ export default class ChatMessage {
 		this._msg = value;
 	}
 
-	static ChatHistory2ChatMessage(params : Info.message, msgType ?: MsgType, userInfo ?: UserInfo | Info.User) {
+	static ChatHistory2ChatMessage(params : Info.Message, msgType ?: MsgType, userInfo ?: UserInfo | Info.User) {
 		const myInfo = AppStorage.get('userInfo') as Info.User
 		const myMsg = new ChatMessage({
 			type: 'user',

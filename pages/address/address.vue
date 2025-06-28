@@ -18,7 +18,7 @@
 	import LinkManListView from '@/pages/address/kit/linkManListView.vue'
 	import PinyinMatch from 'pinyin-match'
 	import { LinkManModel } from '@/models/LinkManModel'
-	import { GET_AVAILABLE, GET_DIGITAL_HUMANS } from '@/api/api'
+	import { GET_AVAILABLE } from '@/api/api'
 	import { Info } from '@/models/INFO'
 	import { AppStorage } from '@/stores/AppStorage'
 	import ChatMessage, { UserInfo } from '@/models/ChatMessage'
@@ -32,18 +32,18 @@
 		GET_AVAILABLE(pararms).then((res) => {
 			console.log('GET_AVAILABLE Sessaces ' + JSON.stringify(res));
 			if (res) {
-				HandledigitalHumans(res as Info.digitalHumansContext)
+				HandledigitalHumans(res as Info.DigitalHumansContext)
 			}
 		})
 	}
-	function HandledigitalHumans(orginalContext : Info.digitalHumansContext) {
+	function HandledigitalHumans(orginalContext : Info.DigitalHumansContext) {
 
 		//总页数
 		let total_pages = orginalContext.total_pages;
 		//当前页数
 		let page = orginalContext.page;
 		const orginalList = AppStorage.get('contacts') as LinkManModel[]
-		let newList = orginalContext.data.map((value : Info.digitalHumans) => {
+		let newList = orginalContext.data.map((value : Info.DigitalHumans) => {
 			return LinkManModel.digitalHumans2LinkManModel(value)
 		})
 		AppStorage.set('contacts', [...orginalList, ...newList])

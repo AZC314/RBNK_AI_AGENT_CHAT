@@ -52,7 +52,7 @@ export class LinkManModel {
 		this.agent_category_id = params.agent_category_id;
 	}
 
-	static digitalHumans2LinkManModel(params : Info.digitalHumans) {
+	static digitalHumans2LinkManModel(params : Info.DigitalHumans) {
 		return new LinkManModel({
 			userId: params.id.toString(),
 			name: params.name,

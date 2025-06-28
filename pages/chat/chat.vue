@@ -88,7 +88,7 @@
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
 	import { useMessageStore } from '@/stores/useMessageStore'
 	import { AppStorage } from '@/stores/AppStorage'
-	import { CONVERSATIONID, CURRENT_ANENT_INFO } from '@/constances/constances'
+	import { CURRENT_ANENT_INFO } from '@/constances/constances'
 	import { useAvatarStore } from '@/stores/useAvatarStore'
 	import kitChatSystemMsg from '@/pages/chat/kit/kit-chat-system-msg.vue'
 	import kitChatMyMsg from '@/pages/chat/kit/kit-chat-my-msg.vue'
@@ -177,7 +177,7 @@
 				});
 
 				console.log('GET_MESSAGE success ' + JSON.stringify(res));
-				const data = res as Info.message[];
+				const data = res as Info.Message[];
 				// 删除旧数据并添加新数据
 				await messageStore.deleteMessages(chatId);
 				data.map(elem => messageStore.addMessage(chatId, elem));
@@ -257,7 +257,6 @@
 
 	// 页面卸载时清理本地存储
 	onBeforeUnmount(() => {
-		AppStorage.delete(CONVERSATIONID)
 		AppStorage.delete('textIDList')
 		messageStore.saveToStorage()
 		// 清理音频上下文
@@ -272,7 +271,7 @@
 	/**
 	 * 格式化并插入消息到msgList
 	 */
-	function handleMsgList(pramas : Info.message[]) {
+	function handleMsgList(pramas : Info.Message[]) {
 		pramas.map(elem => {
 			const format = ChatMessage.ChatHistory2ChatMessage(elem, 'text', { agentId: chatId, username: chatTitle.value })
 			msgList.value.push(...format)
@@ -490,7 +489,7 @@
 			if (first_id) params.first_id = first_id
 
 			const res = await GET_MESSAGE(params)
-			const data = res as Info.message[]
+			const data = res as Info.Message[]
 
 			if (data && data.length > 0) {
 				// 有新数据，添加到列表前面
