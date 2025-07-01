@@ -61,7 +61,17 @@ export const GET_AVAILABLE = (params : object) => $.get('/api/agents/available',
 export const DELETE_CONVERSATIONS = (conversation_id : string) => { return $.delete(`/api/chat/conversations/${conversation_id}`) }
 
 //获取对话消息历史
+/**
+ * 获取消息列表
+ *
+ * 该函数通过发送GET请求到API服务器，请求指定参数的相关消息
+ * 主要用于在客户端获取聊天消息或通知
+ *
+ * @param params 请求参数，通常包括页码、消息类型等信息。ps{conversation_id:对话 ID,first_id：用于分页的前一条消息 ID（来自上一条响应）,limit:10}
+ * @returns 返回一个Promise对象，解析后提供消息列表
+ */
 export const GET_MESSAGE = (params : object) => $.get('/api/chat/messages', params)
+
 //停止回答
 export const POST_CHAT_STOP = (params ?: object) => $.post('/api/chat/stop', params)
 //反馈评价数值人的输出内容
@@ -86,87 +96,12 @@ export const POST_CHAT_COMPLETIONS = async (
 	onChar ?: (char : string, messageId : string) => void,
 	onDone ?: () => void
 ) => {
-	// 构建请求URL（使用全局配置的基础地址）
-	const url = $.config.Host + '/api/chat/completions';
-
-	// 合并请求头（优先使用传入的header，否则使用全局配置的Header）
-	const reqHeader = header ?? $.config.Header!();
-	console.log('POST_CHAT_COMPLETIONS reqHeader = ' + JSON.stringify(reqHeader));
-	try {
-		// 发起POST请求
-		const resp = await fetch(url, {
-			method: 'POST',
-			headers: reqHeader,
-			body: JSON.stringify(params)
-		});
-
-		// 获取SSE流的ReadableStream reader
-		const reader = resp.body?.getReader();
-		if (!reader) throw new Error('无法获取 SSE 流 reader');
-
-		// 用于解码流数据的工具
-		const decoder = new TextDecoder('utf-8');
-		let buffer = ''; // 缓冲区，用于存储未完整接收的数据块
-		// 持续读取流数据
-		while (true) {
-			const { value, done } = await reader.read();
-			if (done) {
-				await reader.cancel(); // 流结束时释放资源
-				break;
-			}
-
-			// 将二进制数据解码为文本并加入缓冲区
-			buffer += decoder.decode(value, { stream: true });
-
-			// 按换行符分割处理完整事件行
-			const lines = buffer.split(/\r?\n/);
-			buffer = lines.pop() || ''; // 剩余不完整行放回缓冲区
-
-			// 处理每个完整的事件行
-			for (const line of lines) {
-				if (!line.startsWith('data:')) continue; // 忽略非数据行
-
-				const jsonStr = line.slice(5).trim(); // 去掉"data:"前缀
-				if (!jsonStr) continue; // 忽略空数据
-
-				try {
-					const data = JSON.parse(jsonStr);
-					if (data.event === 'workflow_started' && getWorkflowInfo) {
-						const options : Record<string, string> = {
-							conversation_id: data.conversation_id,
-							message_id: data.message_id,
-							created_at: data.created_at,
-							task_id: data.task_id,
-						}
-						getWorkflowInfo(options);
-					}
-					// 处理工作流结束事件
-					if (data.event === 'workflow_finished' && onDone) {
-						onDone?.(); // 触发完成回调
-						await reader.cancel(); // 主动关闭流
-						return; // 直接结束函数
-					}
-
-					// 处理消息事件（逐字符输出）
-					if (data.event === 'message' && typeof data.answer === 'string') {
-						onChar?.(data.answer, data.message_id); // 触发字符回调
-						await delayChar(); // 控制输出速度（模拟打字机效果）
-					}
-				} catch (e) {
-					console.warn('JSON 解析失败:', jsonStr); // 错误降级处理
-				}
-			}
-		}
-		onDone?.(); // 确保流结束时触发完成回调
-	} catch (err) {
-		console.error('SSE 流异常:', err); // 全局错误捕获
-	}
+	return $.postStream(
+		'/api/chat/completions',
+		params,
+		header,
+		getWorkflowInfo,
+		onChar,
+		onDone
+	);
 };
-
-/**
- * 延迟函数（用于控制字符输出速度）
- * @param ms 延迟毫秒数（默认30ms）
- */
-function delayChar(ms = 30) {
-	return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}

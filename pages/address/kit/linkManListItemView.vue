@@ -85,79 +85,109 @@ import { onMounted } from 'vue'
 </script>
 
 <style scoped lang="scss">
-	image {
-		width: 26rpx;
-		height: 26rpx;
-	}
+.linkman-item {
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+  transition: background 0.2s;
+  &:last-child {
+    border-bottom: none;
+  }
+  &:active {
+    background: #f7f7f7;
+  }
+}
 
-	.avatar-container {
-		width: 80rpx;
-		height: 80rpx;
-		margin-right: 20rpx;
-		position: relative;
-	}
+image {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.7;
+}
 
-	.avatar {
-		width: 100%;
-		height: 100%;
-		border-radius: 50%;
-	}
+.avatar-container {
+  width: 88rpx;
+  height: 88rpx;
+  margin-right: 24rpx;
+  position: relative;
+  flex-shrink: 0;
+}
 
-	.avatar-placeholder {
-		width: 100%;
-		height: 100%;
-		border-radius: 50%;
-		background-color: #1890ff;
-		color: #fff;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 32rpx;
-		font-weight: bold;
-	}
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2rpx solid #f1f3f4;
+  box-shadow: none;
+}
 
-	.online-indicator {
-		position: absolute;
-		bottom: 0;
-		right: 0;
-		width: 16rpx;
-		height: 16rpx;
-		background-color: #52c41a;
-		border-radius: 50%;
-		border: 2rpx solid #fff;
-	}
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
 
+.online-indicator {
+  position: absolute;
+  bottom: 4rpx;
+  right: 4rpx;
+  width: 20rpx;
+  height: 20rpx;
+  background-color: #52c41a;
+  border-radius: 50%;
+  border: 3rpx solid #fff;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
 
-	.content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		overflow: hidden;
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
 
-		.name-row {
-			display: flex;
-			align-items: center;
-			margin-bottom: 8rpx;
+  .name-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8rpx;
+    .name {
+      font-size: 30rpx;
+      color: #1a1a1a;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: 0.3rpx;
+    }
+  }
+  .department {
+    font-size: 26rpx;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+    font-weight: 400;
+  }
+}
 
-			.name {
-				font-size: 28rpx;
-				color: #333;
-				font-weight: bolder;
-			}
-		}
-
-		.department {
-			font-size: 26rpx;
-			color: #999;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-	}
-
-	.person-icon {
-		align-content: center;
-		margin-right: 20rpx;
-	}
+.person-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  width: 48rpx;
+  .person {
+    width: 28rpx;
+    height: 28rpx;
+    opacity: 0.6;
+    display: block;
+    margin: 0 auto;
+  }
+}
 </style>

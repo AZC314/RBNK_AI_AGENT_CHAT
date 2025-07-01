@@ -3,9 +3,11 @@
 		<uni-nav-bar color="#091020" background-color="#FFF" fixed="true" leftText="消息" :border="false"
 			class="navbar"></uni-nav-bar>
 		<view class="searchBox">
-			<uni-search-bar v-model="searchText" placeholder="搜索" radius="10" cancelButton="none" bgColor="#f7f7f9" />
+			<uni-search-bar v-model="searchText" placeholder="搜索" radius="10" cancelButton="none" bgColor="#f7f7f9"
+				:input-style="inputStyle" :placeholder-style="placeholderStyle" />
 		</view>
 		<view class="search-result">
+			<!-- 会话列表显示 -->
 			<template v-if="filteredList && filteredList.length > 0">
 				<uni-swipe-action>
 					<uni-swipe-action-item v-for="session in filteredList" :key="session.userId" :auto-close="true"
@@ -14,12 +16,18 @@
 							<kit-list-item :session="session" />
 						</view>
 					</uni-swipe-action-item>
-					<!-- <uni-load-more :status="loading" iconType="auto" /> -->
 				</uni-swipe-action>
 			</template>
-			<template v-else>
-				<EmptyState />
+			<!-- 加载状态显示 -->
+			<template v-if="isLoading">
+				<view class="loading-container">
+					<uni-load-more status="loading" iconType="auto" />
+				</view>
 			</template>
+			<!-- 空状态显示 -->
+			<!-- <template v-else> -->
+			<!-- <EmptyState /> -->
+			<!-- </template> -->
 		</view>
 	</view>
 </template>
@@ -33,104 +41,43 @@
 	} from 'vue'
 	import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 	import PinyinMatch from 'pinyin-match'
-	import { SessionModel } from '@/models/sessionModel'
-	import EmptyState from '@/components/EmptyState.vue'
-	import { DateTool } from '@/tools/DateTool.ts'
-	import { ImgTool } from '@/tools/imgTool'
-	import SessionListItemView from '@/components/sessionListItemView.vue'
-	import kitListItem from '@/pages/message/kit/kit-List-Item.vue'
-	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_DEPARTMENTS_BY_ANGENT_ID, GET_ME_INFO } from '@/api/api'
+	import { DELETE_CONVERSATIONS, GET_CHAT_HISTORY, GET_ME_INFO } from '@/api/api'
+	import GeneralServices from '@/api/GeneralServices'
 	import { AppStorage } from '@/stores/AppStorage'
-	import { Info } from '@/models/INFO.ts'
 	import { useMessageStore } from '@/stores/useMessageStore'
 	import { useChatSessionStore } from '@/stores/useChatSessionStore'
-	
+	import { ADDRESS, CURRENT_ANENT_INFO, USER_INFO } from '@/constances/constances'
+	import { SessionModel } from '@/models/sessionModel'
+	import { LinkManModel } from '@/models/LinkManModel'
 	import ChatMessage, { UserInfo } from '@/models/ChatMessage'
-	import { ADDRESS, CURRENT_ANENT_INFO, TOKEN, USER_INFO } from '@/constances/constances'
-import { LinkManModel } from 'models/LinkManModel'
+	import { Info } from '@/models/INFO'
+	import EmptyState from '@/components/EmptyState.vue'
+	import kitListItem from '@/pages/message/kit/kit-List-Item.vue'
 
-	// 声明全局类型
-	declare const uni : any
-	declare const getCurrentPages : () => any[]
+
+	// 保证输入框聚焦和失焦样式一致
+	const inputStyle = 'color:#222;font-size:28px;font-weight:400;background:#fff;';
+	const placeholderStyle = 'color:#bbb;font-size:22px;';
+
+	// Store实例
 	const sessionStore = useChatSessionStore()
 	const messageStore = useMessageStore()
 
-
-	//搜索框内容
+	// 响应式数据
+	/** 搜索框输入内容 */
 	const searchText = ref('')
-	//消息列尔
+	/** 会话列表（计算属性，从store获取） */
 	const sessionList = computed(() => sessionStore.getSessions)
-	//当前用户信息
-	const userInfo = ref<Info.User>()
+	/** 页面加载状态 */
+	const isLoading = ref(false)
+	/** 滑动操作锁定状态，防止误触 */
+	const swipeLock = ref(false)
 
 
-	const init = async () => {
-		// 初始化store并检查是否需要更新
-		const needUpdate = await sessionStore.initStore()
-
-		if (needUpdate) {
-			handSessionList(new Object({ page_size: 10, sort_by: '-updated_at' }))
-		}
-	}
-
-	function handleMeInfo(callback : (userInfo : Info.User) => void) {
-		GET_ME_INFO()
-			.then((res) => {
-				console.log('GET_ME_INFO 成功：', JSON.stringify(res));
-
-				if (res?.data) {
-					callback(res.data as Info.User);
-				} else {
-					console.warn('GET_ME_INFO 返回数据为空');
-				}
-			})
-			.catch((err) => {
-				console.error('GET_ME_INFO 失败：', err);
-			});
-	}
-
-	function handSessionList(params : object) {
-		GET_CHAT_HISTORY(params).then((res) => {
-			console.log('GET_CHAT_HISTORY Sessaces', JSON.stringify(res));
-			if (res) {
-				HandleChatHistory(res as Info.ChatHistoryContext)
-				// AppStorage.set('chatHistory', res as Info.ChatHistoryContext)
-			}
-		})
-	}
-
-
-	//首次进入加载聊天session记录
-	function HandleChatHistory(orginalContext : Info.ChatHistoryContext) {
-
-		//总页数
-		let total_pages = orginalContext.total_pages;
-		//当前页数
-		let page = orginalContext.page;
-		//有用项数
-		let usefulItem = sessionStore.getSessions.length ?? 0;
-		// const chatSessionStore = useChatSessionStore()
-		// const sessionsMap = new Map<number, Info.ChatHistory[]>()
-
-		//压入数据
-		// 设置会话列表
-		usefulItem += sessionStore.setSessionList(orginalContext.items)
-		console.log('usefulItem ' + usefulItem + 'total_pages' + total_pages + "page" + page);
-		if (usefulItem >= 10 || page >= total_pages) {
-			AppStorage.set('sessionList', sessionStore.getSessions)
-			console.log('最终的sessionList' + JSON.stringify(AppStorage.get('sessionList')));
-			// 停止下拉刷新动画
-			uni.stopPullDownRefresh()
-		} else {
-			handSessionList(new Object({ page_size: orginalContext.page_size, page: orginalContext.page + 1, sort_by: '-updated_at' }))
-		}
-	}
-
-
-	function setIconClickEvent() {
-		console.log('message点击右上角设置按钮')
-	}
-	//过滤列表
+	/**
+	 * 过滤会话列表（计算属性）
+	 * 根据搜索关键词过滤会话列表，支持拼音匹配
+	 */
 	const filteredList = computed(() => {
 		const keyword = searchText.value.trim().toLowerCase()
 		if (!keyword) return sessionList.value
@@ -143,7 +90,11 @@ import { LinkManModel } from 'models/LinkManModel'
 		})
 	})
 
-	//左滑选项
+	/**
+	 * 获取左滑操作选项
+	 * @param isPinned 是否已置顶
+	 * @returns 操作选项数组
+	 */
 	function getOptions(isPinned : boolean) {
 		return [{
 			text: isPinned ? '取消置顶' : '置顶',
@@ -160,9 +111,11 @@ import { LinkManModel } from 'models/LinkManModel'
 		]
 	}
 
-	const swipeLock = ref(false)
-
-	// 操作按钮点击事件
+	/**
+	 * 左滑操作按钮点击事件处理
+	 * @param session 会话对象
+	 * @param e 点击事件对象
+	 */
 	const bindClick = (session : SessionModel, e : any) => {
 		swipeLock.value = true // 启用点击锁
 
@@ -170,19 +123,20 @@ import { LinkManModel } from 'models/LinkManModel'
 		if (!action) return
 
 		if (action.includes('置顶')) {
-			session.isPinned = !session.isPinned
-			sessionList.value = [...sessionList.value].sort((a, b) => {
-				if (a.isPinned && !b.isPinned) return -1
-				if (!a.isPinned && b.isPinned) return 1
-				return b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
-			})
+			// 切换置顶状态
+			session.isPinned = !session.isPinned;
+			// 排序后直接更新 sessionStore.getSessions
+			const sorted = [...sessionStore.getSessions].sort((a, b) => {
+				if (a.isPinned === b.isPinned) {
+					return b.lastMessageTime.getTime() - a.lastMessageTime.getTime();
+				}
+				return a.isPinned ? -1 : 1;
+			});
+			sessionStore.getSessions.splice(0, sessionStore.getSessions.length, ...sorted);
 		} else if (action === '删除') {
-			let agentId = session.userId;
-			let conversationList = [];
+			// 删除会话
 			/* todo 通过agentId删除所有和这个ai数字人相关的chat */
-			sessionStore.removeSession(session.userId)
-			// sessionList.value = sessionStore.getSessions
-
+			// sessionStore.removeSession(session.userId)
 
 			DELETE_CONVERSATIONS(session.conversation_id).then((res) => {
 				console.log('DELETE_CONVERSATIONS success' + JSON.stringify(res));
@@ -193,7 +147,6 @@ import { LinkManModel } from 'models/LinkManModel'
 					console.log('DELETE_CONVERSATIONS fail' + err.data.detail);
 					console.log(err)
 				})
-
 		}
 
 		// 延迟解锁，确保点击动画执行完
@@ -202,81 +155,96 @@ import { LinkManModel } from 'models/LinkManModel'
 		}, 200)
 	}
 
-	// 内容点击事件
-	const contentClick = (session : SessionModel) => {
+	/**
+	 * 会话内容点击事件处理
+	 * @param session 会话对象
+	 */
+	const contentClick = async (session : SessionModel) => {
 		if (swipeLock.value) {
 			console.log('[拦截] 按钮点击后触发，阻止跳转')
 			return
 		}
+
 		const agent_id = encodeURIComponent(session.userId)
-		const getDepartmentInfo = (): Record<string, string> | undefined => {
-		    const linkman = AppStorage.get(ADDRESS) as LinkManModel[];
-		    const currentLinkman = linkman.find(value => value.userId === session.userId);
-		    
-		    if (currentLinkman) {
-		        return {
-		            departmentName: currentLinkman.department,
-		            departmentId: currentLinkman.departmentId.toString()
-		        };
-		    }
-		    return {
-				departmentName:'',
-				departmentId: '0'
-			};
-		};
-		
-		const departmentInfo = getDepartmentInfo() || { departmentName: '', departmentId: '0' }
-		
-		const currentAgentInfo: UserInfo = {
-		  agentId: session.userId,
-		  username: session.username,
-		  face: session.avatarUrl,
-		  departmentName: departmentInfo['departmentName'],
-		  departmentId: +departmentInfo['departmentId']
+
+		// 通过GeneralServices获取联系人信息
+		const linkman = await GeneralServices.getDepartmentInfo(session)
+		const departmentName = linkman?.department || ''
+		const departmentId = linkman?.departmentId ? linkman.departmentId.toString() : '0'
+
+		// 构建当前代理信息
+		const currentAgentInfo : UserInfo = {
+			agentId: session.userId,
+			username: session.username,
+			face: session.avatarUrl,
+			departmentName: departmentName,
+			departmentId: +departmentId
 		}
+
+		// 存储当前代理信息并跳转到聊天页面
 		AppStorage.set(CURRENT_ANENT_INFO, currentAgentInfo)
 		uni.navigateTo({
 			url: `../chat/chat?agent_id=${agent_id}&conversationId=${session.conversation_id}`
 		})
 	}
 
-	const formatTime = (date : Date) => {
-		const now = Date.now()
-		const diff = now - date.getTime()
-		const oneDay = 24 * 60 * 60 * 1000
-		if (diff < oneDay) return new Date(date).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-		return new Date(date).toLocaleDateString('zh-CN')
-	}
-
-	onMounted(() => {
-		init()
-	})
-
-	// 接收页面参数
+	/**
+	 * 页面加载时执行
+	 * @param options 页面参数
+	 */
 	onLoad((options) => {
 		uni.startPullDownRefresh();
 		/* todo 接收企微的数据  */
 		if (options?.id) {
-
+			// 处理企微数据（待实现）
 		}
-		// const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTA0MDUzNjYsInN1YiI6IjEifQ.eWSjuC4wn1vvBTnajjq20iZm45B_1V50T29qjynq-c4';
-		// AppStorage.set('token', token)
-		handleMeInfo((data : Info.User) => {
-			const old = AppStorage.get(USER_INFO) as Info.User
-			messageStore.loadFromStorage()
-			if (old.id != data.id) {
-				AppStorage.set(USER_INFO, data)
-				messageStore.clearAllMessages()
-			}
-		})
+
+		// // 获取并处理用户信息
+		// GeneralServices.preHandleSessionList({ page_size: 10, page: 1, sort_by: '-updated_at' }, () => {
+		// 	// @ts-ignore
+		// 	if (typeof uni !== 'undefined' && uni.stopPullDownRefresh) uni.stopPullDownRefresh()
+		// })
 	})
 
-	// 下拉刷新处理函数
-	onPullDownRefresh(async () => {
+	/**
+	 * 组件挂载时执行初始化
+	 */
+	onMounted(() => {
+		isLoading.value = true
 		try {
-			// 强制刷新会话列表
+			// 初始化sessionStore并获取会话列表
+			const currentSessions = sessionStore.getSessions
+			console.log('当前会话列表长度:', currentSessions.length)
+			if (currentSessions.length === 0) {
+				console.log('会话列表为空，开始通过GeneralServices加载...')
+				// 通过GeneralServices加载会话列表
+				GeneralServices.preHandleSessionList({ page_size: 10, page: 1, sort_by: '-updated_at' }, () => {
+					isLoading.value = false
+				})
+			} else {
+				console.log('会话列表已存在')
+				isLoading.value = false
+			}
+		} catch (error) {
+			console.error('初始化会话列表失败:', error)
+			uni.showToast({
+				title: '加载会话列表失败',
+				icon: 'error',
+				duration: 2000
+			})
+			isLoading.value = false
+		}
+	})
+
+	/**
+	 * 下拉刷新处理函数
+	 */
+	onPullDownRefresh(() => {
+		try {
 			sessionStore.clearSessions();
-			handSessionList(new Object({ page_size: 40, sort_by: '-updated_at' }))
+			GeneralServices.handSessionList({ page_size: 10, sort_by: '-updated_at' },10, () => {
+				uni.stopPullDownRefresh()
+			})
 		} catch (error) {
 			console.error('下拉刷新失败:', error)
 			uni.showToast({
@@ -291,28 +259,47 @@ import { LinkManModel } from 'models/LinkManModel'
 
 <style scoped lang="scss">
 	::v-deep(.uni-navbar-left) {
-		font-size: 36rpx !important;
-		font-weight: bold;
+		font-size: 32rpx !important;
+		font-weight: 600;
+		color: #1a1a1a;
 	}
 
+
 	.searchBox {
-		width: 96vw;
-		padding: 10rpx 2vw;
+		width: 100%;
+		padding: 16rpx 24rpx;
 		background-color: #fdfdfe;
+		border-bottom: 1rpx solid #e9ecef;
+		box-sizing: border-box;
 	}
 
 	.search-result {
-		.avatar-placeholder {
-			width: 100%;
-			height: 100%;
-			border-radius: 50%;
-			background-color: #1890ff;
-			color: #fff;
+		background: #FFF;
+		min-height: 0em;
+		padding: 0;
+		border-radius: 0 0 24rpx 24rpx;
+
+		.loading-container {
 			display: flex;
-			align-items: center;
 			justify-content: center;
-			font-size: 32rpx;
-			font-weight: bold;
+			align-items: center;
+			padding: 40rpx 0;
+		}
+
+
+		.content-box {
+			width: 100%;
+			background-color: #fff;
+			margin: 0;
+			padding: 0;
+			border-radius: 0;
+			box-shadow: none;
+			border-bottom: 1rpx solid #f0f0f0;
+			transition: background 0.2s;
+
+			&:last-child {
+				border-bottom: none;
+			}
 		}
 
 		.swipe-right-buttons {
@@ -329,6 +316,7 @@ import { LinkManModel } from 'models/LinkManModel'
 			align-items: center;
 			padding: 0 15px;
 			background-color: #007aff;
+			border-radius: 0 22px 22px 0;
 		}
 
 		.slot-button-del {
@@ -340,17 +328,13 @@ import { LinkManModel } from 'models/LinkManModel'
 			align-items: center;
 			padding: 0 15px;
 			background-color: #ff5a5f;
+			border-radius: 0 22px 22px 0;
 		}
 
 		.slot-button-text {
 			color: #ffffff;
 			font-size: 14px;
 			white-space: nowrap
-		}
-
-		.content-box {
-			width: 100%;
-			background-color: #ffffff;
 		}
 	}
 </style>

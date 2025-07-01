@@ -79,11 +79,11 @@ export const useChatSessionStore = defineStore('chatSession', {
 					this.sessions[index] = data
 				}
 				this.saveToStorage()
-				return index // 未插入，是更新 返回下标
+				return index + 1 // 未插入，是更新 返回下标
 			} else {
 				this.sessions.push(data)
 				this.saveToStorage()
-				return this.sessions.length - 1 // 新插入返回下标
+				return this.sessions.length // 新插入返回下标
 			}
 		},
 

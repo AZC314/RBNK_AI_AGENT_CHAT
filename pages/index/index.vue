@@ -42,6 +42,7 @@
 		REF_TOKEN,
 		TOKEN
 	} from '@/constances/constances';
+	import GeneralServices from '@/api/GeneralServices'
 
 	// 表单数据
 	const form = ref({
@@ -104,7 +105,6 @@
 		isSubmitting.value = true;
 
 		try {
-			// 模拟API请求（实际替换为你的登录接口）
 			POSYT_LOGIN(new Object({
 				username: form.value.username,
 				password: form.value.password
@@ -117,15 +117,16 @@
 				} else {
 					if (res.access_token) AppStorage.set(TOKEN, res.access_token)
 					if (res.refresh_token) AppStorage.set(REF_TOKEN, res.refresh_token)
+					GeneralServices.globalInitialization()
 					// 登录成功处理
 					uni.showToast({
-					  title: '登录成功',
-					  icon: 'success',
-					  duration: 1000
+						title: '登录成功',
+						icon: 'success',
+						duration: 1000
 					});
-					setTimeout(() => {
-					  uni.switchTab({ url: "/pages/message/message" });
-					}, 1000);
+					uni.switchTab({
+						url: "/pages/message/message"
+					});
 				}
 			})
 
@@ -143,6 +144,7 @@
 
 	// 页面加载时自动聚焦用户名输入框（H5/App生效）
 	onLoad(() => {
+    GeneralServices.clearStore()
 		// #ifdef H5 || APP
 		document.querySelector('.input')?.focus();
 		// #endif

@@ -59,31 +59,45 @@
 </script>
 
 <style scoped lang="scss">
+	/* 部门分组样式优化 */
+	.department-group {
+		margin-bottom: 24rpx;
+		background: #fff;
+		border-radius: 18rpx;
+		box-shadow: 0 2px 8px rgba(180,200,220,0.04);
+		overflow: hidden;
+	}
+
 	.department-header {
-		padding: 16rpx 40rpx;
-		background-color: #fcfcfd;
+		height: 88rpx;
+		padding: 0 32rpx;
+		background-color: #f7f8fa;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		border-bottom: 1rpx solid #e9ecef;
 
+		/* 部门标题样式优化 */
 		.department-title {
-			font-size: 25rpx;
-			color: #666;
-			font-weight: bold;
+			font-size: 28rpx;
+			color: #222;
+			font-weight: 600;
+			letter-spacing: 0.5rpx;
 		}
 
+		/* 成员数量样式优化 */
 		.member-count {
 			display: flex;
-			width: 40rpx;
-			height: 40rpx;
-			align-content: center;
-			justify-content: center;
-			font-size: 24rpx;
-			color: #999;
-			// margin-left: 8rpx;
-			background-color: #e8e8eb;
-			border-radius: 20rpx;
+			width: 48rpx;
+			height: 48rpx;
 			align-items: center;
+			justify-content: center;
+			font-size: 22rpx;
+			color: #6c757d;
+			background-color: #e9ecef;
+			border-radius: 24rpx;
+			font-weight: 500;
+			line-height: 48rpx;
 		}
 	}
 </style>

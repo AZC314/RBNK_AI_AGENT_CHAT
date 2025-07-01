@@ -3,7 +3,7 @@
 		<template v-slot:header>
 			<view class="avatar-container">
 				<image :src="avatar" class="avatar" mode="aspectFill" />
-			<!-- 	<view v-else class="avatar-placeholder">
+				<!-- 	<view v-else class="avatar-placeholder">
 					{{ getFirstChar(session.username) }}
 				</view> -->
 
@@ -16,7 +16,7 @@
 			<view class="content">
 				<view class="name-row">
 					<text class="name">{{ session.username }}&nbsp;</text>
-					<view class="department">
+					<view class="department" v-if="department !== ''">
 						<text class="department-text">&nbsp;{{ department }}&nbsp;</text>
 					</view>
 
@@ -39,8 +39,12 @@
 	import { DateTool } from '@/tools/dateTool'
 	import { SessionModel } from '@/models/sessionModel'
 	import { GET_DEPARTMENTS_BY_ANGENT_ID, GET_PHOTO } from '@/api/api'
-	import { Session } from 'inspector';
+	import GeneralServices from '@/api/GeneralServices'
+	// import { Session } from 'inspector';
 	import { useAvatarStore } from '@/stores/useAvatarStore'
+	import { AppStorage } from '@/stores/AppStorage'
+	import { LinkManModel } from '@/models/LinkManModel'
+	import { ADDRESS } from '@/constances/constances'
 
 	const avatarStore = useAvatarStore()
 	const props = defineProps<{
@@ -49,9 +53,9 @@
 
 	const department = ref('')
 	const avatar = ref('/static/default-avatar.png')
-	
+
 	async function loadAvatar() {
-	  avatar.value = await avatarStore.getAvatarUrl(props.session.userId, props.session.avatarUrl)
+		avatar.value = await avatarStore.getAvatarUrl(props.session.userId, props.session.avatarUrl)
 	}
 
 	function getFirstChar(name : string) {
@@ -62,101 +66,47 @@
 		return count.toString()
 	}
 
-	/**
-	 * 获取用户部门信息
-	 * @param session 用户会话模型
-	 * @returns 返回部门名称（Promise<string>）
-	 */
-	async function getDepartment(session ?: SessionModel) : Promise<string> {
-		const data = session ?? props.session
-		// 如果session中已有部门信息，直接返回
-		if (data.department && data.department !== '') {
-			console.log('getDepartment【原始数据】当前用户部门信息: ' + data.department);
-			return data.department;
-		}
-		// 如果没有部门信息，则根据用户ID查询
-		else {
-			try {//todo agent查部门
-				// 调用API获取部门信息
-				const response = await GET_DEPARTMENTS_BY_ANGENT_ID(data.departmentId ?? 1);
-				console.log('getDepartment【查询成功】部门数据: ' + JSON.stringify(response));
-				const resData = response.data;
-				// 返回部门描述，如果没有则返回空字符串
-				const resurt = resData!.description;
-				return resurt;
-			} catch (err) {
-				console.error('getDepartment【查询失败】获取部门信息错误: ' + JSON.stringify(err));
-			}
-			return ''; // 发生错误时返回空字符串
-		}
-	}
-
 	onMounted(async () => {
 		loadAvatar()
-		const dept = await getDepartment()
-		department.value = dept
+		const dept = await GeneralServices.getDepartmentInfo(props.session)
+		department.value = dept?.department ?? ''
 	})
 </script>
 
 <style lang="scss" scoped>
-	.session-item {
-		display: flex;
-		padding: 20rpx;
-		background-color: #f9fafb;
-		position: relative;
-	}
-
-	.session-item.pinned {
-		background-color: #FFEDED !important;
-		/* 添加 !important 确保样式生效 */
+	.uni-list-item {
+		background: transparent;
+		padding: 0;
 	}
 
 	.avatar-container {
-		width: 80rpx;
-		height: 80rpx;
-		margin-right: 20rpx;
+		width: 88rpx;
+		height: 88rpx;
+		margin-right: 24rpx;
 		position: relative;
+		flex-shrink: 0;
 	}
 
 	.avatar {
 		width: 100%;
 		height: 100%;
 		border-radius: 50%;
+		border: 2rpx solid #f1f3f4;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 	}
 
 	.avatar-placeholder {
 		width: 100%;
 		height: 100%;
 		border-radius: 50%;
-		background-color: #1890ff;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 		color: #fff;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 32rpx;
-		font-weight: bold;
-	}
-
-	.unread-badge {
-		position: absolute;
-		top: -6rpx;
-		right: -6rpx;
-		min-width: 32rpx;
-		height: 32rpx;
-		background-color: #ff4d4f;
-		border-radius: 16rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0 6rpx;
-		box-sizing: border-box;
-	}
-
-	.unread-count {
-		color: #fff;
-		font-size: 20rpx;
-		font-weight: bold;
-		line-height: 1;
+		font-weight: 600;
+		letter-spacing: 1rpx;
 	}
 
 	.content {
@@ -165,75 +115,58 @@
 		flex-direction: column;
 		justify-content: center;
 		overflow: hidden;
-	}
+		min-width: 0;
 
-	.name-row {
-		display: flex;
-		align-items: center;
-		margin-bottom: 8rpx;
-	}
+		.name-row {
+			display: flex;
+			align-items: center;
+			margin-bottom: 8rpx;
 
-	.name {
-		font-size: 28rpx;
-		color: #333;
-		font-weight: bolder;
-		white-space: nowrap;
-		/* 禁止换行 */
-		overflow: hidden;
-		/* 隐藏溢出内容 */
-		text-overflow: ellipsis;
-		/* 超出部分显示省略号 */
-	}
+			.name {
+				font-size: 30rpx;
+				color: #222;
+				font-weight: 600;
+				line-height: 1.4;
+				letter-spacing: 0.3rpx;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
 
-	.department {
-		display: flex;
-		padding: 1rpx 4rpx;
-		align-content: center;
-		justify-content: center;
-		border-radius: 30px;
-		background-color: #f3f4f6;
+			.department {
+				display: flex;
+				align-items: center;
+				margin-left: 8rpx;
 
-		.department-text {
-			font-size: 25rpx;
-			font-weight: normal;
-			color: #757575;
+				.department-text {
+					font-size: 26rpx;
+					color: #222;
+					background: #f4f6fa;
+					border-radius: 999px;
+					padding: 4rpx 12rpx;
+					font-weight: 500;
+					display: inline-block;
+					line-height: 32rpx;
+				}
+			}
+		}
+
+		.last-message {
+			font-size: 26rpx;
+			color: #6c757d;
+			line-height: 1.5;
 			white-space: nowrap;
-			/* 禁止换行 */
 			overflow: hidden;
-			/* 隐藏溢出内容 */
 			text-overflow: ellipsis;
-			/* 超出部分显示省略号 */
+			margin-bottom: 2rpx;
 		}
 	}
 
-	.last-message, .last-message * {
-		font-size: 26rpx;
-		color: #999;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		display: block;
-	}
-
-	br {
-		display: none;
-	}
-
 	.time {
-		font-size: 24rpx;
-		color: #999;
-		margin-left: 20rpx;
+		font-size: 22rpx;
+		color: #bbb;
+		margin-left: 12rpx;
+		align-self: flex-end;
 		white-space: nowrap;
-	}
-
-	/* 下边框线，左右有间距 */
-	.bottom-border {
-		position: absolute;
-		left: 30rpx;
-		right: 30rpx;
-		bottom: 0;
-		height: 3rpx;
-		background-color: #e0e0e0;
-		z-index: 1;
 	}
 </style>

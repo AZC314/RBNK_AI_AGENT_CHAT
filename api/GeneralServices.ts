@@ -5,7 +5,8 @@ import { Info } from '@/models/INFO'
 import { LinkManModel } from '@/models/LinkManModel'
 import { useChatSessionStore } from '@/stores/useChatSessionStore'
 import { useMessageStore } from '@/stores/useMessageStore'
-import { USER_INFO, CURRENT_ANENT_INFO, ADDRESS, SESSION_LIST, SESSION_PAGE } from '@/constances/constances'
+import { USER_INFO, CURRENT_ANENT_INFO, ADDRESS, SESSION_PAGE, TOKEN } from '@/constances/constances'
+import { SessionModel } from 'models/sessionModel'
 
 
 /**
@@ -52,6 +53,23 @@ export class GeneralServices {
 		this.sessionStore.clearSessions()
 		this.messageStore.clearAllMessages()
 		AppStorage.delete(ADDRESS)
+		AppStorage.delete(USER_INFO)
+		AppStorage.delete(CURRENT_ANENT_INFO)
+	}
+
+	globalInitialization() {
+		console.log('执行全局初始化');
+		if (AppStorage.get(TOKEN)) {
+			this.handleMeInfo((userInfo) => {
+				const userInfoByStorage = AppStorage.get(USER_INFO) as Info.User
+				if (userInfoByStorage?.id !== userInfo.id) {
+					this.clearStore()
+					AppStorage.set(USER_INFO, userInfo)
+					this.preHandleSessionList({ page_size: 10, page: 1, sort_by: '-updated_at' })
+					this.handleLinkManList({ page_size: 100, is_digital_human: true })
+				}
+			})
+		}
 	}
 
 
@@ -59,13 +77,12 @@ export class GeneralServices {
 	 * 获取联系人列表并存储到本地（递归分页）
 	 * @param params 查询参数，如 { page_size: 100, is_digital_human: true }
 	 * @param onComplete 完成时回调，返回所有联系人数组
+	 * @param accumulatedList 递归累加的联系人数组
 	 */
-	handleLinkManList(params : object, onComplete ?: (list : LinkManModel[]) => void) {
-		// 调用GET_AVAILABLE方法获取可用资源，并处理返回结果
+	handleLinkManList(params : object, onComplete ?: (list : LinkManModel[]) => void, accumulatedList : LinkManModel[] = []) {
 		GET_AVAILABLE(params).then((res) => {
-			// 如果返回结果存在，则调用HandledigitalHumans函数处理数字人类信息
 			if (res) {
-				this.HandledigitalHumans(res as Info.DigitalHumansContext, params, onComplete)
+				this.HandledigitalHumans(res as Info.DigitalHumansContext, params, onComplete, accumulatedList)
 			}
 		})
 	}
@@ -75,31 +92,23 @@ export class GeneralServices {
 	 * @param orginalContext 数字人接口返回的上下文数据
 	 * @param params 原始请求参数
 	 * @param onComplete 完成时回调，返回所有联系人数组
+	 * @param accumulatedList 递归累加的联系人数组
 	 */
-	HandledigitalHumans(orginalContext : Info.DigitalHumansContext, params : object, onComplete ?: (list : LinkManModel[]) => void) {
-		// 获取总页数和当前页数，用于后续的分页处理
+	HandledigitalHumans(orginalContext : Info.DigitalHumansContext, params : object, onComplete ?: (list : LinkManModel[]) => void, accumulatedList : LinkManModel[] = []) {
 		let total_pages = orginalContext.total_pages;
 		let page = orginalContext.page;
-
-		// 从存储中获取已有的联系人列表，如果不存在，则初始化为空数组
-		const orginalList = AppStorage.get(ADDRESS) as LinkManModel[] || [];
-
-		// 将接收到的数据转换为LinkManModel实例列表
 		let newList = orginalContext.data.map((value : Info.DigitalHumans) => {
 			return LinkManModel.digitalHumans2LinkManModel(value);
 		});
+		const mergedList = [...accumulatedList, ...newList];
 
-		// 将转换后的联系人列表追加到存储中的联系人列表后面
-		AppStorage.set(ADDRESS, [...orginalList, ...newList]);
-
-		// 检查当前页数是否已经达到总页数，以决定是完成加载还是继续加载下一页
 		if (page >= total_pages) {
-			// 如果当前页数达到总页数，则获取所有联系人，并调用完成回调函数
-			const allContacts = AppStorage.get(ADDRESS);
-			onComplete && onComplete(allContacts);
+			AppStorage.set(ADDRESS, mergedList);
+			onComplete && onComplete(mergedList);
+			console.log('获取到了最终的联系人列表');
+			console.log(mergedList);
 		} else {
-			// 否则，更新页数并请求加载下一页的联系人列表
-			this.handleLinkManList({ ...(params as any), page: page + 1 }, onComplete);
+			this.handleLinkManList({ ...(params as any), page: page + 1 }, onComplete, mergedList);
 		}
 	}
 
@@ -139,11 +148,11 @@ export class GeneralServices {
 		if (currentSessionLength % 10 !== 0) {
 			// 不能被10整除，直接退出刷新并提示
 			console.warn('当前会话数量不能被10整除，停止加载更多');
-			uni.showToast({
-				title: '已加载全部数据',
-				icon: 'none',
-				duration: 1000
-			});
+			// uni.showToast({
+			// 	title: '已加载全部数据',
+			// 	icon: 'none',
+			// 	duration: 1000
+			// });
 			// 调用完成回调，返回当前所有会话
 			onComplete && onComplete(this.sessionStore.getSessions);
 			return false; // 不继续执行递归查询
@@ -161,7 +170,7 @@ export class GeneralServices {
 
 	/**
 	 * 获取会话列表并存储到本地（递归分页）
-	 * @param params 查询参数，如 { page_size: 40, sort_by: '-updated_at' }
+	 * @param params 查询参数，如 { page_size: 10, sort_by: '-updated_at' }
 	 * @param targetUsefulItem 目标有用条目数量
 	 * @param onComplete 完成时回调，返回所有会话数组
 	 */
@@ -200,8 +209,9 @@ export class GeneralServices {
 
 		// 当达到目标有用项数量或当前页达到总页数时，保存当前页码和会话列表，并调用完成回调
 		if (usefulItem >= targetUsefulItem || page >= total_pages) {
+			console.log('获取到了最终的会话列表');
+			console.log(this.sessionStore.getSessions as SessionModel[]);
 			AppStorage.set(SESSION_PAGE, page);
-			// AppStorage.set(SESSION_LIST, this.sessionStore.getSessions);
 			onComplete && onComplete(this.sessionStore.getSessions);
 		} else {
 			// 否则，递归调用处理下一页的会话列表
@@ -217,6 +227,32 @@ export class GeneralServices {
 	 */
 	async loadAvatar(id : string, url : string) {
 		return await this.avatarStore.getAvatarUrl(id, url)
+	}
+
+	/**
+	 * 获取用户部门信息及完整联系人对象
+	 * @param sessionOrUserId SessionModel对象或userId字符串
+	 * @returns Promise<LinkManModel|null> 匹配到的联系人对象或null
+	 */
+	async getDepartmentInfo(sessionOrUserId : any) : Promise<LinkManModel | null> {
+		let userId = '';
+		if (typeof sessionOrUserId === 'object' && sessionOrUserId !== null) {
+			userId = sessionOrUserId.userId;
+		} else if (typeof sessionOrUserId === 'string') {
+			userId = sessionOrUserId;
+		}
+		let contacts = AppStorage.get(ADDRESS) as LinkManModel[] || [];
+		if (!contacts || contacts.length === 0) {
+			// 自动拉取联系人
+			await new Promise<void>((resolve) => {
+				this.handleLinkManList({ page_size: 100, is_digital_human: true }, (list) => {
+					contacts = list;
+					resolve();
+				});
+			});
+		}
+		const matchedContact = contacts.find(contact => contact.userId === userId) || null;
+		return matchedContact;
 	}
 }
 

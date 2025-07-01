@@ -5,7 +5,7 @@
 	</view>
 </template>
 
-<script setup>
+<script setup lang="ts">
 	import {
 		defineProps
 	} from 'vue'
@@ -29,13 +29,14 @@
 	})
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 	.empty-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		flex: 1 1 auto;
+		background-color: #FFF;
 	}
 
 	.empty-icon {
